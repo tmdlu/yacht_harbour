@@ -1,0 +1,148 @@
+﻿@page "/Supervisor/AddStatus/{yachtID:int}"
+@using DataBaseAccess.Models
+@using yacht_harbour.Models
+@using yacht_harbour.Data
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject Repository.Services.AccountManagmentService accountService;
+@inject Repository.Services.StatusService statusService;
+@inject NavigationManager navigationManager
+
+
+
+@if (isLoaded && isAuthorised)
+{
+    <center class="box-shadow"> 
+        <div class ="flex_container">
+            <div class ="flex-item1">
+                <EditForm Model="@statusData" OnValidSubmit="@performOperation">
+                     <DataAnnotationsValidator/>
+                    <div>
+                        <div class="row">
+                            <div class="flex-md-column mx-auto pr-3"><p>Rozpoczecie:</p>
+                                <InputDateTime id="start_date" @bind-Value="statusData.status_date"></InputDateTime>
+                                
+                            </div>
+                        </div>
+                        <br/>
+                        <div>Opis:          <InputText id="type" @bind-Value="statusData.condition"/>
+                             <div><ValidationMessage For="() => statusData.condition"/></div>
+                        </div>
+
+                        <br/>
+                            <div>Możliwość pływania:  <InputCheckbox id="ppossibility" @bind-Value="statusData.sailling_possibility"/>
+                                 <div><ValidationMessage For="() => statusData.sailling_possibility"/></div>    
+                             </div>
+                        
+          
+                        <br/>
+                    </div>
+                    <div class="box-shadow"> 
+                       
+                        <ValidationSummary/>  
+                    </div>
+                    <br />
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary mb-3">Dodaj status</button>
+                            <a href="/Supervisor/DisplayStatuses" class="btn btn-danger mb-3">Anuluj</a>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </center>
+    
+}
+
+
+@if (!isLastBeforeNewDate)
+{
+    <div class="alert alert-warning" role="alert">
+        Nowy status nie może być przed ostatnim
+    </div>
+}
+
+
+@code {
+
+    [Parameter]
+    public int yachtID{ get; set; }
+
+    private bool isAuthorised = true;
+    private Account account { get; set; }
+    private StatusFront statusData = new StatusFront();
+    private bool isTimeFrameCorrect = true;
+    Status lastStatus;
+    private bool isLastBeforeNewDate = true;
+    private bool isLoaded = false;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        statusData.status_date = DateTime.Today;
+        lastStatus = await statusService.getYachtLastStatus(yachtID);
+        authorizationHandle();
+
+
+        isLoaded = true;
+    }
+
+
+
+    private async Task performOperation()
+    {
+        isLastBeforeNewDate = isNewDateAfterLast(statusData);
+        bool isInputDataCorrect = isLastBeforeNewDate ;
+        
+
+        if (isInputDataCorrect)
+        {
+            await statusService.AddNewStatus( statusData.status_date, 
+                statusData.condition,
+                yachtID,
+                statusData.sailling_possibility,
+                account.IdAccount
+               );
+            navigationManager.NavigateTo("/Supervisor/DisplayStatuses", true);
+        }
+       
+    }
+    
+  
+    private bool isNewDateAfterLast(StatusFront data)
+    {
+        if (data.status_date <= lastStatus.StatusDate)
+        {
+            return false;
+        }
+        else return true;
+    }
+    
+
+    
+
+
+    public async void authorizationHandle()
+    {
+        try
+        {
+            await authorizeAccount();
+        }
+        catch // assuming account of a given ID has not been found
+        {
+            isAuthorised = false;
+        }
+    }
+
+
+      public async Task authorizeAccount()
+    {
+        if(await sessionStorage.GetItemAsStringAsync("role")=="Boatswain" || await sessionStorage.GetItemAsStringAsync("role")=="Maat")
+        {
+            String accountId = await sessionStorage.GetItemAsStringAsync("account_id");
+
+          
+            account = await accountService.GetAccountByID(Int32.Parse(accountId));
+        }
+        else
+            isAuthorised = false;
+
+    }
+}

@@ -1,0 +1,152 @@
+is_global = true
+build_property.TargetFramework = net6.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = yacht_harbour
+build_property.RootNamespace = yacht_harbour
+build_property.ProjectDir = C:\Users\ooo2t\source\repos\inzynierkaAPD\yacht-harbour\yacht-harbour\
+build_property.RazorLangVersion = 6.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Users\ooo2t\source\repos\inzynierkaAPD\yacht-harbour\yacht-harbour
+build_property._RazorSourceGeneratorDebug = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Account/UserDataEditing.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWNjb3VudFxVc2VyRGF0YUVkaXRpbmcucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Account/UserInfo.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWNjb3VudFxVc2VySW5mby5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Admin/CreateAccount.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cQ3JlYXRlQWNjb3VudC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Admin/DisplayAccounts.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cRGlzcGxheUFjY291bnRzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Admin/EditAccount.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWRtaW5cRWRpdEFjY291bnQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Boatswain/AddManyOrders.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQm9hdHN3YWluXEFkZE1hbnlPcmRlcnMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Boatswain/DisplayLowerAccounts.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQm9hdHN3YWluXERpc3BsYXlMb3dlckFjY291bnRzLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Boatswain/DisplayOrders.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQm9hdHN3YWluXERpc3BsYXlPcmRlcnMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Boatswain/EditLowerAccount.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQm9hdHN3YWluXEVkaXRMb3dlckFjY291bnQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Boatswain/EditYacht.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQm9hdHN3YWluXEVkaXRZYWNodC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Boatswain/YachtsManagment.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQm9hdHN3YWluXFlhY2h0c01hbmFnbWVudC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Maat/DisplayAcceptedOrders.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTWFhdFxEaXNwbGF5QWNjZXB0ZWRPcmRlcnMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Maat/ReleaseYacht.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTWFhdFxSZWxlYXNlWWFjaHQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Maat/ReturnYacht.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTWFhdFxSZXR1cm5ZYWNodC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Popus/CalendarDayInfoBoatswain.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUG9wdXNcQ2FsZW5kYXJEYXlJbmZvQm9hdHN3YWluLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Popus/CalendarDayInfoMaat.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUG9wdXNcQ2FsZW5kYXJEYXlJbmZvTWFhdC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Popus/CalendarPopup.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUG9wdXNcQ2FsZW5kYXJQb3B1cC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Popus/YachtPopus.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUG9wdXNcWWFjaHRQb3B1cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Sailor/AddOrder.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2FpbG9yXEFkZE9yZGVyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Sailor/DisplayYachts.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2FpbG9yXERpc3BsYXlZYWNodHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Sailor/Modal/ModalDialog.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2FpbG9yXE1vZGFsXE1vZGFsRGlhbG9nLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Supervisor/AddStatus.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU3VwZXJ2aXNvclxBZGRTdGF0dXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Supervisor/DisplayStatuses.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU3VwZXJ2aXNvclxEaXNwbGF5U3RhdHVzZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Test/AccountTest.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVGVzdFxBY2NvdW50VGVzdC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/UnregisteredForms/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVW5yZWdpc3RlcmVkRm9ybXNcTG9naW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/UnregisteredForms/Register.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVW5yZWdpc3RlcmVkRm9ybXNcUmVnaXN0ZXIucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Shared/LoginLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXExvZ2luTGF5b3V0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Shared/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXE1haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-t46attct4v
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Shared/NavMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXE5hdk1lbnUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-hhf0ydv1kv
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/Error.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXJyb3IuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/ooo2t/source/repos/inzynierkaAPD/yacht-harbour/yacht-harbour/Pages/_Host.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX0hvc3QuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 

@@ -1,0 +1,213 @@
+﻿@page "/Boatswain/EditYacht/{YachtID:int}"
+
+@using yacht_harbour.Data
+@using DataBaseAccess.Models
+
+@inject NavigationManager NavigationManager
+
+@inject Repository.Services.AccountManagmentService accountService
+@inject Repository.Services.YachtService yachtService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+
+
+@if (isLoaded && isAuthorised)
+{
+ <h4>@header</h4>
+    <center>
+        <EditForm Model="@yachtFront" OnValidSubmit="@updateYachtData">
+            <div class="container">
+                <div class="flex-md-column mx-auto"><p>Nazwa:</p>       <InputText id="Name" @bind-Value="yachtFront.Yacht_name"/></div>
+                <br />
+                <div class="flex-md-column mx-auto"><p>Type:</p>    <InputText id="Type" @bind-Value="yachtFront.Type"/></div>
+                <br />
+                <div class="flex-md-column mx-auto"><p>Długość [m]:</p>     <InputNumber step="0.01" id="Length" @bind-Value="yachtFront.Length"/></div>
+                <br />
+                <div class="flex-md-column mx-auto"><p>Szerokość [m]:</p>     <InputNumber step="0.01" id="Width" @bind-Value="yachtFront.Width"/></div>
+                <br />
+                <div class="flex-md-column mx-auto"><p>Zanurzenie [m]:</p>     <InputNumber step="0.01" id="Draft" @bind-Value="yachtFront.Draft"/></div>
+                <br />
+                <div class="flex-md-column mx-auto"><p>Powierzchnia żaglowa [m<sup>2</sup></p>     <InputNumber step="0.01" id="Sailed_Surface" @bind-Value="yachtFront.Sailed_Surface"/></div>
+                <br />
+                <div class="flex-md-column mx-auto"><p>Ilość załogi:</p>     <InputNumber  id="Crew" @bind-Value="yachtFront.Crew_Number"/></div>
+                <br />
+                <div class="flex-md-column mx-auto"><p>Zastrzeżenia:</p>     <InputText id="Remarks" @bind-Value="yachtFront.Remarks"/></div>
+                <br />
+               
+                
+            </div>
+            <div class="box-shadow"> 
+                <DataAnnotationsValidator/>
+                <ValidationSummary/>  
+            </div>
+            <button type="submit" class="btn btn-primary"  @onclick="@updateYachtData">@buttonText</button>
+        </EditForm>
+        <br/>
+        <button type="button" class="btn btn-primary" @onclick="@goToYachtsData">Powrót</button>
+    </center>
+}
+
+@if (!isAuthorised)
+{
+    <h2>Nie jesteś autoryzowany do uzyskania tego zasobu!</h2>
+}
+@if (wasException)
+{
+    <center>
+        <hr>
+        <p style="color:rgb(255,51,51)">@error</p>
+    </center>
+}
+
+@code
+{
+    [Parameter]
+    public int YachtID {get;set;}
+
+
+    private Models.YachtFront yachtFront = new Models.YachtFront();
+
+    private string error;
+    private bool wasException;
+    private string header;
+    private string buttonText;
+    private bool isLoaded;
+    private bool isAuthorised = true;
+    protected override async Task OnParametersSetAsync()
+    {
+        authorizationHandle();
+
+        wasException = false;
+        try
+        {
+            if(YachtID>0)
+            {
+                await initYachtData();
+                header = "Edytuj jacht";
+                buttonText = "Edytuj";
+            }
+            else
+            {
+                header = "Dodaj jacht";
+                buttonText = "Dodaj";
+            }
+            isLoaded = true;
+
+        }
+        catch (Exception e)
+        {
+            error = e.Message;
+            wasException = true;
+        }
+    }
+
+    private async Task initYachtData()
+    {
+
+
+        Yacht dbYacht = await yachtService.getYachtById(YachtID);
+        yachtFront = new Models.YachtFront()
+            {
+                IdYacht = dbYacht.IdYacht,
+                Yacht_name = dbYacht.YachtName,
+                Type = dbYacht.Type,
+                Length = dbYacht.Length,
+                Width = dbYacht.Width,
+                Draft = dbYacht.Draft,
+                Sailed_Surface = dbYacht.SailedSurface,
+                Crew_Number = dbYacht.CrewNumber,
+                Remarks = dbYacht.Remarks
+
+
+            };
+
+
+
+
+    }
+
+    private async void updateYachtData()
+    {
+
+        try
+        {
+
+            if (YachtID > 0)
+            {
+                Yacht tmp = new Yacht()
+                {
+                    IdYacht = yachtFront.IdYacht,
+                    YachtName = yachtFront.Yacht_name,
+                    Type = yachtFront.Type,
+                    Length = yachtFront.Length,
+                    Width = yachtFront.Width,
+                    Draft = yachtFront.Draft,
+                    SailedSurface = yachtFront.Sailed_Surface,
+                    CrewNumber = yachtFront.Crew_Number,
+                    Remarks = yachtFront.Remarks
+                };
+                var tmp2 = await yachtService.UpdateYacht(tmp);
+            }
+
+            else
+            {
+                yachtService.AddNewYacht(yachtFront.Yacht_name, yachtFront.Type, yachtFront.Length, yachtFront.Width, yachtFront.Draft, yachtFront.Sailed_Surface, yachtFront.Crew_Number, yachtFront.Remarks);
+                yachtFront = new Models.YachtFront();
+            }
+
+            
+
+
+
+
+
+                 NavigationManager.NavigateTo("/Boatswain/YachtsManagment");
+            
+
+
+        }
+        catch (Exception e)
+        {
+
+            wasException = true;
+            error = e.Message;
+            this.StateHasChanged();
+
+        }
+    }
+
+  
+
+    private void goToYachtsData()
+    {
+        NavigationManager.NavigateTo("/Boatswain/YachtsManagment");
+    }
+
+     public async void authorizationHandle()
+    {
+        try
+        {
+            await authorizeAccount();
+        }
+        catch // assuming account of a given ID has not been found
+        {
+            isAuthorised = false;
+        }
+    }
+
+
+    public async Task authorizeAccount()
+    {
+        if(await sessionStorage.GetItemAsStringAsync("role")=="Boatswain")
+        {
+            String accountId = await sessionStorage.GetItemAsStringAsync("account_id");
+
+           
+         
+        }
+        else
+            isAuthorised = false;
+
+    }
+}

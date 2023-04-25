@@ -1,0 +1,76 @@
+﻿@inject Repository.Services.YachtService YachtService;
+@using DataBaseAccess.Models
+
+@{
+    var showClass = IsVisible ? "d-block" : "d-none";
+}
+
+
+@if (yacht != null)
+{
+
+
+    <div class="toast-container p-3 @showClass" data-bs-autohide="true" data-bs-delay="5000" style="position: fixed; z-index: 9999; right: 0;">
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">@HeaderText</strong>
+                <button type="button" class="btn-close" aria-label="Close" @onclick="Close"></button>
+            </div>
+
+            <div class="toast-body">
+                <h3>Jacht Numer @yacht.IdYacht</h3>
+                <h3> Nazwa: @yacht.YachtName</h3>
+                <h3> Typ: @yacht.Type</h3>
+                <h3> Długość: @yacht.Length m</h3>
+                <h3> Szerokość: @yacht.Width m</h3>
+                <h3> Zanurzenie: @yacht.Draft m</h3>
+                <h3> Powierzchnia żaglowa @yacht.SailedSurface m<sup>2</sup></h3>
+                <h3> Ilość załogi: @yacht.CrewNumber</h3>
+                <h3> @yacht.Remarks</h3>        </div>
+        </div>
+    </div>
+}
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> IsVisibleChanged { get; set; }
+
+    [Parameter]
+    public string? HeaderText { get; set; }
+
+    [Parameter]
+    public int id { get; set; }
+
+    public Yacht yacht = new Yacht();
+
+    protected override async Task OnParametersSetAsync()
+    {
+
+       
+        yacht = await YachtService.getYachtById(id);
+
+    }
+
+
+    public void Show(int id)
+    {
+       
+        IsVisible = true;
+        
+        
+        yacht = Task.Run(async () => await YachtService.getYachtById(id)).Result; 
+        StateHasChanged();
+    }
+
+    private void Close()
+    {
+        HeaderText = string.Empty;
+        id = -1;
+        IsVisible = false;
+        StateHasChanged();
+    }
+
+
+}

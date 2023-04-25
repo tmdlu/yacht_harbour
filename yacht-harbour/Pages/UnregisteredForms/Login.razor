@@ -1,0 +1,113 @@
+﻿@layout LoginLayout
+@page "/login"
+
+@using Models
+@using yacht_harbour.Data
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+@inject Repository.Services.AccountManagmentService accountService
+
+<style>
+    button{
+        margin-top:2px;
+    }
+    div{
+        margin:2px;
+    }
+    h3{
+        margin-bottom:1%;
+    }
+    hr{
+        width:400px;
+    }
+    .box-shadow{
+        height:350px;
+    }
+</style>
+<center>
+    <div class="box-shadow">
+    <h3 class="display-4">Logowanie</h3>
+    <hr />
+    <EditForm Model="@account" OnValidSubmit="@ValidateUser">
+        <div class="email">Email:<br /> <InputText id="email" @bind-Value="account.Email"/></div>
+        <div>Hasło:<br />   <InputText type="password" id="password" @bind-Value="account.Password"/></div>
+        <button type="submit" class="btn btn-primary">Zaloguj się</button>
+    </EditForm>
+    <br />
+    <a class="custom-class text-center col-6 col-md-1 themed-grid-col" href="/register">Rejestracja</a>
+    </div>
+</center>
+
+@if(isException)
+{
+    <center> 
+        <hr>
+        <h3 style="color:rgb(255,51,51)">Błędne dane!</h3> 
+    </center>
+    <!-- <p>@error</p> --> 
+}
+
+@code 
+{
+    private AccountFront account;
+
+    private string error;
+    private bool isException = false;
+
+    protected override Task OnInitializedAsync()
+    {
+
+        account = new AccountFront();
+        return base.OnInitializedAsync();
+    }
+
+    private async Task<bool> ValidateUser()
+    {
+        try
+        {
+            var hashedPassword = new passwordController().hashPassword(account.Password);
+            var dbAccount = await accountService.GetAccountByEmailAndPassword(account.Email, hashedPassword);
+            
+            account.Name = dbAccount.Name;
+            account.Password = dbAccount.Password;
+            account.Surname = dbAccount.Surname;
+            
+            account.ClubStatus = dbAccount.ClubStatus;
+            account.Email = dbAccount.Email;
+            account.PhoneNumber = dbAccount.PhoneNumber;
+            account.Role = dbAccount.Role;
+          if(account.ClubStatus==null)
+                account.ClubStatus = "";
+          if(account.PhoneNumber==null)
+            account.PhoneNumber = "";
+          if(account.Role == null)
+            account.Role = "";
+            isException = false;
+
+            
+            ((CustomAuthenticationStateProvider)AuthenticationStateProvider).MarkUserAsAuthenticated(account);
+            NavigationManager.NavigateTo("/");
+
+            await sessionStorage.SetItemAsStringAsync("account_id", dbAccount.IdAccount.ToString());
+            await sessionStorage.SetItemAsStringAsync("email", account.Email);
+            await sessionStorage.SetItemAsStringAsync("name", account.Name);
+            await sessionStorage.SetItemAsStringAsync("surname", account.Surname);
+            await sessionStorage.SetItemAsStringAsync("password", account.Password);
+            await sessionStorage.SetItemAsStringAsync("phone", account.PhoneNumber);
+       
+            await sessionStorage.SetItemAsStringAsync("status", account.ClubStatus);
+            await sessionStorage.SetItemAsStringAsync("role", account.Role);
+
+            return await Task.FromResult(true);
+        }
+        catch (Exception e)
+        {
+            error = e.ToString();
+            isException = true;
+            return await Task.FromResult(false);
+        }
+    }
+}

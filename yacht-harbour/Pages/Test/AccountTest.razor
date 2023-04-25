@@ -1,0 +1,279 @@
+﻿@page "/Test/Account"
+
+@using Repository.Repositories
+@using Repository.Services
+@using Models
+@using DataBaseAccess.Models
+@using Data
+
+
+@inject Repository.Services.AccountManagmentService storage;
+@inject Repository.Services.FunctionService _functionService;
+@inject Repository.Services.OrderService _orderService;
+
+
+
+
+
+<center>
+   
+    <h3>Select a form </h3>
+    <br />
+    <div class="box-shadow">
+        <button type="button" class="btn btn-primary" @onclick="triggerDisplayInsertForm">Display Insert</button>
+        <button type="button" class="btn btn-primary" @onclick="triggerDisplayAccounts">Display Accounts</button>
+        <button type="button" class="btn btn-primary" @onclick="triggerDisplayDeleteAccount">Display Delete</button>
+        <button type="button" class="btn btn-primary" @onclick="triggerDisplayUpdateStatus">Display Update Status</button>
+     
+
+
+        <button type="button" class="btn btn-primary" @onclick="triggerDisplayFunctions">Display function</button>
+        <button type="button" class="btn btn-primary" @onclick="refresh">Refresh</button>
+    </div>
+</center>
+
+@if (displayInsertForm)
+{
+    <h4>Insert New Account</h4>
+    <center>
+        <EditForm Model="@newAccount" OnValidSubmit="@InsertAccount">
+            <div class="box-shadow">
+                <div>Name:      <InputText id="firstName" @bind-Value="newAccount.Name"/></div>
+                <br />
+                <div>Surname:   <InputText id="secondName" @bind-Value="newAccount.Surname"/></div>
+                <br />
+                <div>E-Mail:    <InputText id="Email" @bind-Value="newAccount.Email"/></div>
+                <br />
+               
+                <div>Password:  <InputText id="Password" @bind-Value="newAccount.Password"/></div>
+                <br />
+                <div>Phone:     <InputText id="Phone" @bind-Value="newAccount.PhoneNumber"/></div>
+                <br />
+                
+            </div>
+            <div class="box-shadow"> 
+                <DataAnnotationsValidator/>
+                <ValidationSummary/>  
+            </div>
+            <button type="submit" class="btn btn-primary">Insert</button>
+        </EditForm>
+    </center>
+}
+
+@if (displayDeleteAccount)
+{
+     <h4>Delete Account</h4>
+
+    <center>
+        <div class="box-shadow"> 
+            <input type="number" @bind-value="userID" @bind-value:event="oninput" />
+            <button type="button" class="btn btn-primary" @onclick="deleteAccount">Delete Account</button>
+        </div>
+    </center>
+ 
+   
+}
+
+@if (displayFunctions && funs != null)
+{
+    <h4>functions</h4>
+
+    <center>
+        <div class="box-shadow"> 
+
+        </div>
+        <div class="border-secondary">
+            <center>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+
+                            <th>function Id</th>
+                            <th>function</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in funs)
+                        {
+                            <tr>
+                                <th>@item.IdFunction</th>
+                                <th>@item.FunctionName</th>
+
+                            </tr>
+                        }
+                    </tbody>
+                    </table>
+                </center>
+            </div>
+
+            
+        
+    </center>
+ }
+   
+
+
+@if (displayUpdateStatus)
+{
+    <h4>Update Account status</h4>
+
+    <center>
+        <div class="box-shadow"> 
+            <div><p>Account Id:</p><input type="number" @bind-value="userID" @bind-value:event="oninput" /></div>
+            <div><p>Status:</p><input type="text" @bind-value="status" @bind-value:event="oninput" /></div>
+            <button type="button" class="btn btn-primary" @onclick="AddStatus">Update</button>
+        </div>
+    </center>
+}
+
+@if (displayAccounts)
+{
+    <h4>Current People</h4>
+    @if (people is null)
+    {
+        <p><em>Loading...</em></p>
+    }
+    else
+    {
+        if (displayAccounts)
+        {
+            <div class="border-secondary">
+                <center>
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                              
+                                <th>Account Id</th>
+                                 <th>Email Adrdress</th>
+                                <th>Name</th>
+                                <th>Surname</th>
+                                <th>Club Status</th>
+                                <th>Phone number</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach(var item in people)
+                            {
+                                <tr>
+                                    <th>@item.IdAccount</th>
+                                    <th>@item.Email</th>
+                                    <th>@item.Name</th>
+                                    <th>@item.Surname</th>
+                                    <th>@item.ClubStatus</th>
+                                    <th>@item.PhoneNumber</th>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </center>
+            </div>
+
+            
+        }
+    }
+}
+
+
+@code 
+{
+    private bool displayAccounts = true;
+    private bool displayInsertForm;
+    private bool displayUpdateStatus;
+    private bool displayDeleteAccount;
+    private int userID;
+    private string status;
+
+    private bool displayFunctions;
+    private List<Account> people;
+    private List<Function> funs;
+
+    private AccountFront newAccount = new AccountFront();
+
+    protected override async Task OnParametersSetAsync()
+    {
+
+        people = await storage.GetAccounts();
+        funs = await _functionService.GetFunctionsOfUser(people[0].IdAccount);
+
+    }
+
+    private async void getFunctionsOfAccounts()
+    {
+        funs = await _functionService.GetFunctionsOfUser(8);
+    }
+
+    private async void refresh()
+    {
+        await this.OnParametersSetAsync();
+        this.StateHasChanged();
+    }
+
+    private void AddStatus()
+    {
+        storage.UpdateAccountStatus(userID, status);
+    }
+
+
+    protected void deleteAccount()
+    {
+        
+        var temp = Task.Run(async () => await  _orderService.GetUserOrders(userID));
+        
+       
+        if (temp.Result.Count ==0)
+        {
+            storage.DeleteAccount(userID);
+        }
+        
+        //this.refresh();
+    }
+
+    private void InsertAccount()
+    {
+        var hashedPassword = new passwordController().hashPassword(newAccount.Password);
+        storage.AddNewAccount(newAccount.Name, newAccount.Surname,newAccount.Email, hashedPassword, newAccount.PhoneNumber, "");
+        newAccount = new AccountFront();
+        //this.refresh();
+    }
+
+      private void triggerDisplayAccounts()
+    {
+        if (displayAccounts == true)
+            displayAccounts = false;
+        else
+            displayAccounts= true;
+    }
+
+     private void triggerDisplayInsertForm()
+    {
+        if (displayInsertForm == true)
+            displayInsertForm = false;
+        else
+            displayInsertForm = true;
+    }
+
+     private void triggerDisplayUpdateStatus()
+    {
+        if (displayUpdateStatus == true)
+            displayUpdateStatus = false;
+        else
+            displayUpdateStatus = true;
+    }
+   
+     private void triggerDisplayDeleteAccount()
+    {
+        if (displayDeleteAccount == true)
+            displayDeleteAccount = false;
+        else
+            displayDeleteAccount = true;
+    }
+    
+    private async void triggerDisplayFunctions()
+    {
+        if (displayFunctions == true)
+            displayFunctions = false;
+        else
+            displayFunctions = true;
+    }
+}

@@ -1,0 +1,95 @@
+﻿@page "/Admin/DisplayAccounts"
+@using DataBaseAccess.Models
+@inject Repository.Services.AccountManagmentService accountService;
+
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject NavigationManager _navigationManager;
+
+
+@if (isLoaded && isAuthorised)
+{
+    
+    <div class="card m-3" style="min-width: 18rem; max-width:50.auto%;">
+     <a href="/Admin/CreateAccount" class="btn btn-success btn-sm">Dodaj</a>
+     </div>
+    @foreach (Account lowAccount in accounts)
+    {
+        int index = @accounts.IndexOf(lowAccount) + 1;
+        <div class="card m-3" style="min-width: 18rem; max-width:50.auto%;">
+            <div class="card-header text-center">
+                <h3>Użytkownik Numer @index</h3>
+                <h3> Imię: @lowAccount.Name</h3>
+                <h3> Nazwisko: @lowAccount.Surname</h3>
+                <h3> Email: @lowAccount.Email</h3>
+                <h3> Rola: @lowAccount.Role</h3>
+               
+                
+            
+            </div>
+           <a href="/Admin/EditAccount/@lowAccount.IdAccount" class="btn btn-warning btn-sm">Edytuj</a>
+        </div>
+    }
+    
+       
+          
+   
+}
+
+
+
+@if (!isAuthorised)
+{
+    <h2>Nie jesteś autoryzowany do uzyskania tego zasobu!</h2>
+}
+
+
+@code {
+
+    private int UserID;
+    private Account account { get; set; }
+
+    private bool isLoaded;
+
+
+    private List<Account> accounts;
+    List<Tuple<int, List<Order>>> YachtsWithOrders = new List<Tuple<int, List<Order>>>();
+    private bool isAuthorised = true;
+    protected override async Task OnParametersSetAsync()
+    {
+        authorizationHandle();
+        //zmienic na obecnego
+
+        accounts = await accountService.GetAccountsWithoutAdmin();
+        isLoaded = true;
+
+    }
+    public async void authorizationHandle()
+    {
+        try
+        {
+            await authorizeAccount();
+        }
+        catch // assuming account of a given ID has not been found
+        {
+            isAuthorised = false;
+        }
+    }
+
+
+    public async Task authorizeAccount()
+    {
+        if(await sessionStorage.GetItemAsStringAsync("role")=="Admin")
+        {
+            String accountId = await sessionStorage.GetItemAsStringAsync("account_id");
+
+            UserID = Int32.Parse(accountId);
+            account = await accountService.GetAccountByID(Int32.Parse(accountId));
+        }
+        else
+            isAuthorised = false;
+
+    }
+
+   
+
+}

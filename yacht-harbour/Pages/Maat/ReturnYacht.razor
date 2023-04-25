@@ -1,0 +1,172 @@
+﻿@page "/Maat/Return/{orderID:int}"
+
+@using DataBaseAccess.Models
+@using yacht_harbour.Models
+@using yacht_harbour.Data
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject Repository.Services.AccountManagmentService accountService;
+@inject Repository.Services.StatusService statusService;
+@inject Repository.Services.OrderService orderService;
+@inject NavigationManager navigationManager
+
+
+
+@if (isLoaded && isAuthorised)
+{
+    <center class="box-shadow"> 
+        <div class ="flex_container">
+            <div class ="flex-item1">
+                <EditForm Model="statusData" OnValidSubmit="@ReturnChange">
+                  <DataAnnotationsValidator/>
+                    <div>
+                        <div class="row">
+                            <div class="flex-md-column mx-auto pr-3"><p>Data odebrania:</p>
+                                <InputDateTime id="start_date" @bind-Value="statusData.status_date"></InputDateTime>
+                                
+                            </div>
+                        </div>
+                        <br/>
+                        <div>Dodatkowy opis:          <InputText id="type" @bind-Value="statusData.condition"/>
+                             <div><ValidationMessage For="() => statusData.condition"/></div>
+                        </div>
+
+                        <br/>
+                            <div>Możliwość pływania:  <InputCheckbox id="ppossibility" @bind-Value="statusData.sailling_possibility"/>
+                                 <div><ValidationMessage For="() => statusData.sailling_possibility"/></div>    
+                             </div>
+                        
+          
+                        <br/>
+                    </div>
+                    <div class="box-shadow"> 
+                       
+                        <ValidationSummary/>  
+                    </div>
+                    <br />
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary mb-3">Odbierz</button>
+                            <a href="/Maat/DisplayAcceptedOrders" class="btn btn-danger mb-3">Anuluj</a>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </center>
+    
+}
+
+
+@if (!isDateGood)
+{
+    <div class="alert alert-warning" role="alert">
+        Czas wydania nie może być po końcowym terminie rezerwacji
+    </div>
+}
+
+
+
+@code {
+
+
+
+    [Parameter]
+    public int? orderID{ get; set; }
+    private bool isAuthorised = true;
+    private Account account { get; set; }
+    private Order order{ get; set; }
+
+    private bool isDateGood = true;
+    private bool isLoaded = false;
+    private bool isCreateOperation = true;
+    private DateTime Date;
+    private StatusFront statusData = new StatusFront();
+    protected override async Task OnParametersSetAsync()
+    {
+
+        authorizationHandle();
+        getOrderData();
+        Date = DateTime.Today;
+        statusData.status_date=DateTime.Today;
+        statusData.condition = " ";
+        isLoaded = true;
+    }
+
+
+
+
+    private bool isReturnTimeGood(Order data)
+    {
+        if (statusData.status_date > data.EndDate || statusData.status_date<data.StartDate)
+        {
+            isDateGood = false;
+            return false;
+        }
+        isDateGood = true;
+        return true;
+    }
+
+
+    public bool checkIfUpdatingExistingEntry()
+    {
+        if (orderID is null)
+        {
+            return false;
+        }
+        else
+        {
+            isCreateOperation = false;
+            return true;
+        }
+    }
+    public async Task getOrderData()
+    {
+        if (checkIfUpdatingExistingEntry())
+        {
+            int unpackedID = orderID ?? -1;
+            order =await orderService.GetOrderByID(unpackedID);
+        }
+    }
+
+    public async void authorizationHandle()
+    {
+        try
+        {
+            await authorizeAccount();
+        }
+        catch // assuming account of a given ID has not been found
+        {
+            isAuthorised = false;
+        }
+    }
+
+
+    public async Task authorizeAccount()
+    {
+        String accountId = await sessionStorage.GetItemAsStringAsync("account_id");
+        account = await accountService.GetAccountByID(Int32.Parse(accountId)); 
+
+    }
+
+
+    private void ReturnChange()
+    {
+        if (order != null && isReturnTimeGood(order))
+        {
+
+            {
+                orderService.UpdateReturn(order.IdOrder,!order.IsReturned);
+                
+                statusService.AddNewStatus(statusData.status_date, ("odebrany; " + statusData.condition), order.YachtIdYacht, statusData.sailling_possibility, account.IdAccount);
+
+
+                this.StateHasChanged();
+                navigationManager.NavigateTo("/Maat/DisplayAcceptedOrders", true);
+            }
+
+            
+        }
+
+
+
+
+    }
+}

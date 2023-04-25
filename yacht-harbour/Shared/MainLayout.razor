@@ -1,0 +1,22 @@
+﻿
+@using yacht_harbour.Data
+<PageTitle>yacht-harbour</PageTitle>
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inherits LayoutComponentBase
+<header>
+  <NavMenu />
+</header>
+
+   <div class="container">
+    <main role="main" class="pb-3">
+        @Body
+    </main>
+
+</div>
+
+<BlazoredModal/>
+@code
+{
+    
+}

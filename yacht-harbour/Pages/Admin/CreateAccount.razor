@@ -1,0 +1,184 @@
+﻿@page "/Admin/CreateAccount"
+@using Data
+@using yacht_harbour.Models
+@using DataBaseAccess.Models
+@inject Repository.Services.AccountManagmentService accountService;
+
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject NavigationManager NavigationManager;
+
+
+@if (isLoaded && isAuthorised)
+{
+     <h4>Dodaj nowe konto</h4>
+    <center>
+        <EditForm Model="@newAccount" OnValidSubmit="@InsertAccount">
+            <div class="container">
+                <div class="flex-md-column mx-auto"><p>Imię:</p>       <InputText id="firstName" @bind-Value="newAccount.Name"/></div>
+                <br />
+                <div class="flex-md-column mx-auto"><p>Nazwisko:</p>    <InputText id="secondName" @bind-Value="newAccount.Surname"/></div>
+                <br />
+                <div class="flex-md-column mx-auto"><p>Email:</p>     <InputText id="Email" @bind-Value="newAccount.Email"/></div>
+                <br />
+               
+       
+                <div class="flex-md-column mx-auto"><p>Telefon:</p>     <InputText id="Phone" @bind-Value="newAccount.PhoneNumber"/></div>
+                <br />
+                <select id="Role" @bind="newAccount.Role"> 
+                             @foreach(string roleName in roleNames)
+                            {
+                                <option value="@roleName">@roleName</option>
+                            }
+                 </select>
+
+
+                  
+                        <div class="flex-md-column mx-auto">
+                            <p>Nowe hasło:</p>
+                            <div class='e-input-group'>
+                                <InputText type="@TxtType" id="ConfirmPassword" @bind-Value="insertedNewPassword" class='e-input' />
+                            </div>
+                        </div>
+                        <div class="flex-md-column mx-auto">
+                            <p>Powtórz nowe hasło:</p>
+                            <div class='e-input-group'>
+                                <InputText type="@TxtType" id="ConfirmPassword" @bind-Value="insertedNewPasswordConfirmation" class='e-input' />
+
+                            </div>
+                        </div>
+                
+            </div>
+            <div class="box-shadow"> 
+                <DataAnnotationsValidator/>
+                <ValidationSummary/>  
+            </div>
+             <br/>
+            <button type="submit" class="btn btn-primary"  @onclick="@createAccountData">Dodaj</button>
+        </EditForm>
+        <br/>
+        <button type="button" class="btn btn-primary"  @onclick="@goToUserData">Powrót</button>
+    </center>
+}
+   
+
+
+
+
+@if (!isAuthorised)
+{
+    <h2>Nie jesteś autoryzowany do uzyskania tego zasobu!</h2>
+}
+
+
+@code {
+
+    private int UserID;
+    private string insertedNewPassword;
+    private string insertedNewPasswordConfirmation;
+    private Account account { get; set; }
+    private AccountFront newAccount = new AccountFront();
+    private bool isLoaded;
+    private string error;
+    private bool wasException;
+    public List<string> roleNames = new List<string> {"None", "Sailor", "Maat", "Boatswain" };
+    public string TxtType = "password";
+    private List<Account> accounts;
+    List<Tuple<int, List<Order>>> YachtsWithOrders = new List<Tuple<int, List<Order>>>();
+    private bool isAuthorised = true;
+    protected override async Task OnParametersSetAsync()
+    {
+        authorizationHandle();
+
+
+        isLoaded = true;
+
+    }
+    public async void authorizationHandle()
+    {
+        try
+        {
+            await authorizeAccount();
+        }
+        catch // assuming account of a given ID has not been found
+        {
+            isAuthorised = false;
+        }
+    }
+
+
+    public async Task authorizeAccount()
+    {
+        if(await sessionStorage.GetItemAsStringAsync("role")=="Admin")
+        {
+            String accountId = await sessionStorage.GetItemAsStringAsync("account_id");
+
+            UserID = Int32.Parse(accountId);
+            account = await accountService.GetAccountByID(Int32.Parse(accountId));
+        }
+        else
+            isAuthorised = false;
+
+    }
+
+
+    private void InsertAccount()
+    {
+        var hashedPassword = new passwordController().hashPassword(newAccount.Password);
+        accountService.AddNewAccount(newAccount.Name, newAccount.Surname,newAccount.Email, hashedPassword, newAccount.PhoneNumber,newAccount.Role);
+        newAccount = new AccountFront();
+        //this.refresh();
+    }
+
+
+    public void ShowPassword()
+    {
+        if (this.TxtType == "password")
+        {
+            this.TxtType = "text";
+        }
+        else
+        {
+            this.TxtType = "password";
+        }
+    }
+
+    private void goToUserData()
+    {
+        NavigationManager.NavigateTo("/Admin/DisplayAccounts");
+    }
+
+    private async void createAccountData()
+    {
+
+        try
+        {
+
+            if (insertedNewPassword != insertedNewPasswordConfirmation) throw new Exception("Błędnie podane stare lub nowe hasła!");
+
+            if ((insertedNewPassword == "" && insertedNewPasswordConfirmation != "") || 
+                (insertedNewPassword != "" && insertedNewPasswordConfirmation == ""))
+                throw new Exception("Uzupełnij pola haseł!");
+            if (newAccount.PhoneNumber == "") throw new Exception("Podaj poprawny numer telefonu!");
+
+            if (insertedNewPassword != "" && insertedNewPasswordConfirmation != "" &&
+                    newAccount.IdAccount.ToString() != "" && newAccount.Surname.ToString() != "" && newAccount.Role != "")
+            {
+                var newHashedPassword = new passwordController().hashPassword(insertedNewPassword);
+                var tmp = await accountService.UpdateAccount(newAccount.IdAccount, newAccount.Name, newAccount.Surname, newAccount.Email, newHashedPassword, newAccount.PhoneNumber, newAccount.Role);
+
+                NavigationManager.NavigateTo("/Admin/DisplayAccounts");
+            }
+
+
+        }
+        catch (Exception e)
+        {
+
+            wasException = true;
+            error = e.Message;
+            this.StateHasChanged();
+
+        }
+    }
+
+}

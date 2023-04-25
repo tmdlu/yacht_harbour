@@ -1,0 +1,801 @@
+﻿@page "/Boatswain/DisplayOrders"
+@using DataBaseAccess.Models
+@using yacht_harbour.Pages.Sailor.Modal
+@inject Repository.Services.AccountManagmentService accountService;
+@inject Repository.Services.OrderService orderService;
+@inject Repository.Services.YachtService YachtService;
+@inject Repository.Services.PowerService powerService;
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+
+@using yacht_harbour.Pages.Popus;
+ @inject NavigationManager navigationManager;
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+<style>
+    #search {
+  width: 110%;
+  padding: 12px 20px;
+  box-sizing: border-box;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  height: 2em;
+}
+
+#multiselect {
+  width: 110%;
+  padding: 0px 20px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  height: 5em;
+  
+} 
+.row {
+    
+}
+.col {
+    
+}
+section {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+}
+
+section > div {
+	border: 1px solid black;
+	
+    height: 12em;
+}
+
+.weekdays {
+  margin: 0;
+  padding: 10px 0;
+  background-color: #1b6ec2;
+}
+
+.weekdays li {
+  display: inline-block;
+  width: 13.6%;
+  color: white;
+  text-align: center;
+  font-size: 23px;
+}
+.month {
+  padding: 10px 25px;
+  width: 100%;
+  height:5em;
+  background: #0b5ed7;
+  text-align: center;
+}
+
+.month ul {
+  margin: 0;
+  padding: 0;
+}
+
+.month div {
+  color: white;
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.month .prev {
+  float: left;
+  padding-top: 10px;
+}
+
+.month .next {
+  float: right;
+  padding-top: 10px;
+}
+
+</style>
+
+
+
+@if (isLoaded && isAuthorised)
+{
+    <YachtPopus HeaderText="Wiecej informacji"  @ref="popus"></YachtPopus>
+ <CalendarDayInfoBoatswain HeaderText="Sprawdź:"  @ref="popup" OnDoneCallback="@OnModalDone"> </CalendarDayInfoBoatswain>
+  
+    <div @onclick="getBack" @onmouseover="MouseOut" @onmouseout="MouseIn">
+    <center class="box-shadow">
+        <button type="button" class="btn btn-warning" @onclick="triggerView">@buttonTextView</button>
+        <br/><br/>
+        <div class="row">
+                 <div class="col" style="margin-left:35%">
+                     
+                     @if(Yachts!=null)
+                       {
+                        <input type="text"  id="search"  @oninput="FilterYachts"  placeholder="Jacht">
+                   
+                       <select id="multiselect" @onchange="SelectYachts"  multiple>
+    
+                           @if(filteredOptionYachts!=null)
+                           {
+                               int numYacht = 0;
+                            @foreach (var yacht in filteredOptionYachts)
+                              {
+
+                          
+                                  if(triggerCalendarView==true)
+                                {
+                                    <option  style="text-shadow: -0.5px 0 black, 0 0.5px black, 0.5px 0 black, 0 -0.5px black; color: @colors[numYacht].Item1;" value="@yacht.IdYacht" selected> @yacht.YachtName </option>
+                                }
+                                else
+                                {
+                                    <option value="@yacht.IdYacht" selected> @yacht.YachtName </option>
+                                }
+                                numYacht++;
+                            }
+                           }
+                        </select>
+                
+                       }
+                </div>
+             <div class="col" style="margin-right:35%">
+                     @if(accounts!=null)
+                   {
+                       <input type="text"  id="search" @oninput="FilterAccounts" placeholder="Marynarz">
+                   <select id="multiselect" @onchange="SelectAccounts" multiple>
+                       @if(filteredOptionAccounts!=null)
+                           {
+                        @foreach (var acc in filteredOptionAccounts)
+                          {
+                            <option value="@acc.IdAccount" selected> @acc.Name @acc.Surname </option>
+                          }
+                           }
+                    </select>
+                   }
+             </div>
+    </div>
+
+
+
+
+
+
+<br/>
+    </center>
+        @if(triggerCalendarView==false)
+        {
+            <center>
+        <h4> Wybierz przedział</h4>
+           <form>
+             <input  type="date" id="datemin" @bind-value="lowerDate" >
+             <label> - </label>
+             <input type="date" id="datemax" @bind="upperDate">
+           </form>
+           <br/>
+           
+          
+
+            
+<button type="button" class="btn btn-primary" @onclick="triggerShow">@buttonText</button>
+</center>
+
+    @foreach (Yacht yacht in DisplayYachts)
+    {
+        
+
+
+        int index = @DisplayYachts.IndexOf(yacht) + 1;
+        <div class="card m-3" style="min-width: 18rem; max-width:50.auto%">
+            <div class="card-header text-center">
+                <h3>Jacht Numer @index</h3>
+                <h3> Nazwa: @yacht.YachtName</h3>
+                <h3> Typ: @yacht.Type</h3>
+                <a class="btn btn-login"  @onclick="() => showInfo(yacht.IdYacht)" >Info</a>
+                
+                
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" style="overflow-y:scroll; max-height: 20em;   display:block;">
+                    <table class="table table-hover table-dark text-center">
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Data dodania</th>
+                                <th scope="col">Data rozpoczenia</th>
+                                <th scope="col">Data zakonczenia</th>
+                                <th scope="col">Zaakceptane</th>
+                                <th scope="col">email</th>
+                                <th scope="col">Uprawnienia</th>
+                                <th scope="col">Typ</th>
+                                <th scope="col">Działania</th>
+                                <th scope="col"></th>
+                                
+
+
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int rowIndex = 1;
+                            }
+
+
+                            @foreach (Order order in Orders)
+                            {
+                                @if (order.YachtIdYacht == yacht.IdYacht && ((order.StartDate >=lowerDate && order.StartDate<=upperDate)||(order.EndDate >=lowerDate && order.EndDate<=upperDate)))
+                                {
+                                   
+                                    @foreach (Account acc in DisplayAccounts)
+                                    {
+                                        @if(acc.IdAccount==order.AccountIdAccount)
+                                        {
+                                             
+                                    <tr>
+                                        <th scope="row">@rowIndex</th>
+                                        <td>@order.RequestDate.ToString("g") </td>
+                                        <td>@order.StartDate.ToString("g")</td>
+                                        <td>@order.EndDate.ToString("g")</td>
+                                        
+                                        @if (order.IsAccepted)
+                                        {
+                                            <td>Tak</td>
+                                        }
+                                        @if (!order.IsAccepted)
+                                        {
+                                            <td>Nie</td>
+                                        }
+                                        
+                                        <th scope="col">@acc.Email </th>
+                                        <td>
+                                            @foreach(Tuple<Power,int> power in Powers)
+                                                    {
+                                                       
+                                                        @if(power.Item2==acc.IdAccount)
+                                                        {
+                                                            @power.Item1.PowerName <br/>
+                                                        }
+                                                    }
+                                                </td>
+                                                <td>@order.OrderType </td>
+                                        @if (@order.IsReleased != true)
+                                        {
+                                            
+                                                string butt="btn btn-success";
+                                                    string info = "Zaakceptuj";
+                                                    @if(@order.IsAccepted==true)
+                                                    {
+                                                        butt = "btn btn-danger";
+                                                        info = "Odmów";
+                                                    }
+                                                   
+                                            
+                                            <td>
+                                              
+                                                <button class="@butt btn-sm"
+                                    @onclick="() => AcceptationChange(order)">
+                                                    @info
+                                                </button>
+                                            </td>
+                                        }
+                                        @if(@order.IsReturned == true)
+                                                {
+                                                   <td>
+                                                        Odebrane
+                                                    </td>  
+                                                }
+                                                else if(@order.IsReleased == true)
+                                                {
+                                                    <td>
+                                                        Wydane
+                                                    </td>
+                                                }
+                                                 <td> <button class="btn btn-danger btn-sm" 
+                                                         @onclick="() => OpenDeleteDialog(order)">Usuń</button></td>
+                                    </tr>
+                                    rowIndex++;
+                                        }
+                                    }
+                                   
+                                }
+                            }
+
+
+
+
+                        </tbody>
+                    </table>
+                    
+                </div>
+            </div>
+        </div>
+        }
+        
+       
+
+    }
+    @if(triggerCalendarView==true)
+    {
+        
+        <center>
+         <div class="month">      
+         
+            <div class="prev"><button type="button" class="btn btn-light" @onclick="() => { monthsAway--; CreateMonth(); }">Poprzedni</button></div>
+            <div class="next"> <button type="button" class="btn btn-light" @onclick="() => { monthsAway++; CreateMonth(); }">Następny</button></div>
+            <div>
+                @monthName<br>
+      <span style="font-size:18px">@year</span>
+    </div>
+  
+</div>
+
+
+        
+           
+           
+        <ul class="weekdays">
+            <li>Pon</li>
+            <li>Wt</li>
+            <li>Śr</li>
+            <li>Cz</li>
+            <li>Pt</li>
+            <li>So</li>
+            <li>Nd</li>
+        </ul>
+        <section>
+	        @for (int i = 0; i < numDummyColumn; i++)
+	        {
+		        <div></div>
+	        }
+            @{DateTime start = new DateTime();}
+            @{DateTime end = new DateTime();}
+            @{Order orderTemp =new Order();}
+	        @for (int i = 1; i <= monthEnd.Day; i++)
+	        {
+		    bool isEmpty = true;
+                
+                var newDate = new DateTime(year, month, i);
+                bool isFirst = true;
+
+		    
+            
+                        <div style="background-color: RoyalBlue">
+                            <div @onclick="()=>selectDate(newDate)">
+			            <h2>@i</h2></div>
+                        @{isFirst=false;}
+                        @for(int j=0;j<24;j++)
+                                {
+                                    int numYacht=0;
+                                    <div  class="row" style="background:none;width:100%; height:3.15%;" >
+                                    @foreach(Yacht y in DisplayYachts)
+                                    {
+                                        
+                                          
+                                            int temp =100/@DisplayYachts.Count ;
+                                             var dateHour = new DateTime(year, month, i);
+                                            dateHour=dateHour.AddHours(j);
+                                            var dateHourEnd=dateHour.AddHours(1);
+                                            string col = (colors.First(c => c.Item2 == y.IdYacht)).Item1;
+                                if (Orders.Any(o=>o.YachtIdYacht==y.IdYacht && o.StartDate<=dateHour && o.EndDate>= dateHourEnd && DisplayAccounts.Any(a=>a.IdAccount==o.AccountIdAccount) ))
+                                    {
+                                        
+                                        <div  @onclick="()=>selectTakenDate(dateHour,y.IdYacht)" class="column" style="background:@col; border: 0.25px solid black; width:@temp%;"></div>
+                                    }
+                                    else
+                                    {
+                                        <div @onclick="()=>selectDate(dateHour)" class="column" style="background:none; border: 0.25px solid black; width:@temp%;"></div>
+                                    }
+                                             
+                                numYacht++;
+                                    }
+                                    </div>
+                                    
+
+                                }
+                       
+                        </div>
+                
+              
+                
+
+
+        }
+</section>
+    </center>
+    
+} </div>
+    }
+
+ @if (DeleteDialogOrderOpen)
+{
+    <ModalDialog Title="Czy jesteś pewny?"
+                 Text="Czy chcesz usunąć tą rezerwację?"
+                 OnClose="@OnDeleteOrderDialogClose"
+                 DialogType="ModalDialog.ModalDialogType.DeleteCancel">
+    </ModalDialog>
+}
+
+
+@if (!isAuthorised)
+{
+    <h2>Nie jesteś autoryzowany do uzyskania tego zasobu!</h2>
+}
+
+
+@code {
+
+
+
+    private DateTime lowerDate; 
+    private DateTime upperDate;
+    private int UserID;
+    private Account account { get; set; }
+    private List<Yacht> Yachts;
+    private List<Yacht> DisplayYachts = new List<Yacht>();
+    private List<Yacht> filteredOptionYachts = new List<Yacht>();
+    private List<Account> filteredOptionAccounts = new List<Account>();
+    private List<Account> DisplayAccounts = new List<Account>();
+    private Order orderToDelete;
+    private List<Order> Orders;
+    private bool isLoaded;
+    private bool DeleteDialogOrderOpen;
+
+    private List<Tuple<Power, int>> Powers;
+
+    private List<Account> accounts;
+    List<Tuple<int, List<Order>>> YachtsWithOrders = new List<Tuple<int, List<Order>>>();
+    private bool isAuthorised = true;
+    private string buttonText;
+    private string buttonTextView;
+    private bool ToAccepted =false;
+    private bool triggerCalendarView = false;
+
+    private YachtPopus popus;
+    private CalendarDayInfoBoatswain popup;
+
+    string monthName = "";
+    DateTime monthEnd;
+    int monthsAway = 0;
+    int numDummyColumn = 0;
+    int year = 2023;
+    int month = 0;
+    string lastColor = "";
+    bool IsInside; 
+    string[] colorPalette = { "#a50026","#d73027","#f46d43","#fdae61","#fee08b","#ffffbf","#d9ef8b","#a6d96a","#66bd63","#1a9850","#006837" };
+    List<Tuple<string, int>> colors = new List<Tuple<string, int>>();
+    protected override async Task OnParametersSetAsync()
+    {
+        authorizationHandle();
+        getPreviousState();
+       
+        buttonText = "Pokaż niezralizowane";
+        buttonTextView = "Pokaż jako kanendarz";
+        Orders = await orderService.GetAllOrders();
+        Yachts = await YachtService.GetYachts();
+        Powers = await powerService.GetPowersWithAccountID();
+
+        lowerDate = DateTime.Now;
+        upperDate = DateTime.Now.AddMonths(1);
+        accounts = await accountService.GetAccounts();
+        DisplayAccounts = accounts;
+        DisplayYachts = Yachts;
+        filteredOptionYachts = Yachts;
+        filteredOptionAccounts = accounts;
+
+
+        for (int i = 0; i < filteredOptionYachts.Count; i++)
+        {
+            Tuple<string, int> temp2;
+
+
+            var temp = new Tuple<string, int>(colorPalette[i % 11], filteredOptionYachts[i].IdYacht);
+            colors.Add(temp);
+            lastColor = temp.Item1;
+        }
+        CreateMonth();
+        isLoaded = true;
+
+
+    }
+    public async void authorizationHandle()
+    {
+        try
+        {
+            await authorizeAccount();
+        }
+        catch // assuming account of a given ID has not been found
+        {
+            isAuthorised = false;
+        }
+    }
+
+
+    public async Task authorizeAccount()
+    {
+        if(await sessionStorage.GetItemAsStringAsync("role")=="Boatswain")
+        {
+            String accountId = await sessionStorage.GetItemAsStringAsync("account_id");
+
+            UserID = Int32.Parse(accountId);
+            account = await accountService.GetAccountByID(Int32.Parse(accountId));
+        }
+        else
+            isAuthorised = false;
+
+    }
+
+    private async Task AcceptationChange(Order orderToChange)
+    {
+        if (orderToChange != null)
+        {
+            var temp = !orderToChange.IsAccepted;
+            orderService.updateActeptation(orderToChange.IdOrder,!orderToChange.IsAccepted, UserID);
+
+
+            while(temp!= orderToChange.IsAccepted)
+            {
+                orderToChange = await orderService.GetOrderByID(orderToChange.IdOrder);
+            }
+            Orders = await orderService.GetAllOrders();
+
+            orderToChange = null;
+            OnParametersSet();
+            StateHasChanged();
+
+
+        }
+
+
+
+
+    }
+
+
+
+    private void showInfo(int id)
+    {
+        popus.Show(id);
+
+    }
+
+    private async Task SelectYachts(ChangeEventArgs e)
+    {
+        DisplayYachts = new List<Yacht>();
+        var selected = (string[])e.Value;
+        Orders = await orderService.GetYachtsOrders(selected.Select(int.Parse).ToList());
+        foreach(var s in selected)
+        {
+            var temp = Task.Run(async () =>  await YachtService.getYachtById(Int32.Parse(s)));
+            DisplayYachts.Add(temp.Result);
+        }
+
+    }
+    private async Task SelectAccounts(ChangeEventArgs e)
+    {
+        DisplayAccounts = new List<Account>();
+        var selected = (string[])e.Value;
+        foreach(var s in selected)
+        {
+            var temp = Task.Run(async () =>  await accountService.GetAccountByID(Int32.Parse(s)));
+            DisplayAccounts.Add(temp.Result);
+        }
+
+    }
+    private async void triggerShow()
+    {
+        if (ToAccepted == true)
+        {
+            ToAccepted = false;
+            buttonText = "Pokaż niezrealizowane";
+            Orders = await orderService.GetAllOrders();
+        }
+
+        else
+        {
+            ToAccepted = true;
+            buttonText = "Pokaż wszystko";
+            Orders = await orderService.GetAllUnRealeasedOrders();
+        }
+        this.StateHasChanged();
+    }
+
+    private async void triggerView()
+    {
+        if (triggerCalendarView == true)
+        {
+            triggerCalendarView = false;
+            buttonTextView = "Pokaż jako kanendarz";
+            await sessionStorage.SetItemAsStringAsync("view", "list");
+
+        }
+
+        else
+        {
+            triggerCalendarView = true;
+            buttonTextView = "Pokaż jako listę";
+            await sessionStorage.SetItemAsStringAsync("view", "calendar");
+        }
+        this.StateHasChanged();
+    }
+
+
+    private void FilterYachts(ChangeEventArgs args)
+    {
+
+        string temp = args.Value.ToString();
+        if (temp != null)
+            filteredOptionYachts = Yachts.Where(o => o.YachtName.ToUpperInvariant().Contains(temp.ToUpperInvariant())).ToList();
+        else
+            filteredOptionYachts = Yachts;
+        if (filteredOptionYachts.Count == 1)
+        {
+            DisplayYachts = new List<Yacht>();
+            DisplayYachts.Add(filteredOptionYachts[0]);
+        }
+
+
+
+    }
+    private string RandomColor(string last)
+    {
+        string color="#1e90ff";
+        var random = new Random();
+        while(color=="#1e90ff" || color==last)
+        {
+            color = String.Format("#{0:X6}", random.Next(0x1000000));
+        }
+
+
+        return color;
+
+
+    }
+    private async Task FilterAccounts(ChangeEventArgs args)
+    {
+
+        filteredOptionAccounts=await accountService.GetAccountsByFullName(args.Value.ToString());
+        if (filteredOptionAccounts.Count == 1)
+        {
+            DisplayAccounts = new List<Account>();
+            DisplayAccounts.Add(filteredOptionAccounts[0]);
+        }
+        this.StateHasChanged();
+
+      
+    }
+    async Task CreateMonth()
+    {
+        var tempDate = DateTime.Now.AddMonths(monthsAway);
+        month = tempDate.Month;
+        year = tempDate.Year;
+
+        DateTime monthStart = new DateTime(year, month, 1);
+        monthEnd = monthStart.AddMonths(1).AddDays(-1);
+        monthName = monthStart.Month switch
+        {
+            1 => "styczeń",
+            2 => "luty",
+            3 => "Marzec",
+            4 => "kwiecień",
+            5 => "maj",
+            6 => "Czerwiec",
+            7 => "Lipiec",
+            8 => "sierpień",
+            9 => "wrzesień",
+            10 => "październik",
+            11 => "listopad",
+            12 => "grudzień",
+            _ => ""
+        };
+        
+
+        numDummyColumn = (int)monthStart.DayOfWeek -1;
+        if (numDummyColumn == -1)
+            numDummyColumn = 6;
+        await sessionStorage.SetItemAsStringAsync("monthsAway", monthsAway.ToString());
+    }
+
+    public async Task getPreviousState()
+    {
+        if(await sessionStorage.GetItemAsStringAsync("view")!=null)
+        {
+            var temp = await sessionStorage.GetItemAsStringAsync("view");
+            if (temp == "list")
+            {
+                triggerCalendarView = false;
+                buttonTextView = "Pokaż jako kanendarz";
+
+
+            }
+
+            else if(temp == "calendar")
+            {
+                triggerCalendarView = true;
+                buttonTextView = "Pokaż jako listę";
+
+
+            }
+        }
+        if(await sessionStorage.GetItemAsStringAsync("monthsAway")!=null)
+        {
+            monthsAway = Int32.Parse(await sessionStorage.GetItemAsStringAsync("monthsAway"));
+
+        }
+        this.StateHasChanged();
+    }
+    public void selectDate(DateTime date)
+    {
+        IsInside = true;
+        popup.Show(date, Orders, DisplayYachts, DisplayAccounts, false);
+    }
+    public async Task selectTakenDate(DateTime date, int id)
+    {
+        IsInside = true;
+        var temp = new List<Yacht>();
+        temp.Add(await YachtService.getYachtById(id));
+        popup.Show(date, await orderService.GetYachtOrders(id),temp , DisplayAccounts, true);
+    }
+
+    void MouseIn()
+    {
+        IsInside= true;
+    } 
+    void MouseOut()
+    {
+        IsInside= false;
+    }
+
+    void getBack()
+    {
+
+        if (!IsInside && popup.IsVisible == true)
+        {
+            popup.Close();
+        }
+    }
+    private void deleteOrder()
+    {
+        if(orderToDelete!=null)
+        {
+            orderService. deleteOrderByID(orderToDelete.IdOrder);
+
+            orderToDelete = null;
+        }
+
+
+
+
+    }
+
+    private void OpenDeleteDialog(Order order)
+    {
+        orderToDelete = order;
+
+        DeleteDialogOrderOpen = true;
+        StateHasChanged();
+    }
+    private async Task OnDeleteOrderDialogClose(bool accepted)
+    {
+        if (accepted)
+        {
+            Orders = await orderService.GetAllOrders();
+            int temp = Orders.Count -1;
+            deleteOrder();
+            while(Orders.Count!=temp)
+            {
+                Orders = await orderService.GetAllOrders();
+            }
+        }
+
+        DeleteDialogOrderOpen = false;
+
+
+
+        this.StateHasChanged();
+    }
+    private void OnModalDone(List<Order> _orders)
+    {
+        Orders = _orders;
+        StateHasChanged();
+    }
+
+
+}
+

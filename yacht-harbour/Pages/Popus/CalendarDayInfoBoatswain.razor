@@ -1,0 +1,296 @@
+﻿@using yacht_harbour.Data
+@using DataBaseAccess.Models
+@using yacht_harbour.Pages.Sailor.Modal
+
+@inject Repository.Services.PowerService powerService;
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject Repository.Services.OrderService orderService;
+@inject NavigationManager navigationManager;
+@{
+    var showClass = IsVisible ? "d-block" : "d-none";
+}
+
+
+
+
+
+    <div  class="toast-container  @showClass" data-bs-autohide="true" data-bs-delay="5000" style=" position: fixed; z-index: 9999;left:21.5%;">
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true" style="width:100%; overflow-y:scroll; max-height: 60em;   display:block;" 
+            <center>
+            <div class="toast-header">
+                <strong class="me-auto">@HeaderText</strong>
+                <button type="button" class="btn-close" aria-label="Close" @onclick="Close"></button>
+            </div>
+
+         
+            
+                 
+
+        
+            
+           @foreach (Yacht yacht in yachts)
+    {
+        
+
+
+       
+        <div class="card m-3" style="min-width: 18rem">
+            <div class="card-header text-center">
+          
+                <h3> Nazwa: @yacht.YachtName</h3>
+                <h3> Typ: @yacht.Type</h3>
+                
+                
+                
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" style="overflow-y:scroll; max-height: 20em;   display:block;">
+                    <table class="table table-hover table-dark text-center">
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Data dodania</th>
+                                <th scope="col">Data rozpoczenia</th>
+                                <th scope="col">Data zakonczenia</th>
+                                <th scope="col">Zaakceptane</th>
+                                <th scope="col">email</th>
+                                <th scope="col">Uprawnienia</th>
+                                <th scope="col">Typ</th>
+                                <th scope="col">Działania</th>
+                                <th scope="col"></th>
+
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int rowIndex = 1;
+                            }
+
+
+                            @foreach (Order order in orders)
+                            {
+                               if(((order.EndDate.Date>=date.Date && order.StartDate.Date<=date.Date && isTaken==false)|| (order.EndDate>=date && order.StartDate<=date && isTaken==true)) && yacht.IdYacht==order.YachtIdYacht)
+                                {
+                                   
+                                    @foreach (Account acc in accounts)
+                                    {
+                                        @if(acc.IdAccount==order.AccountIdAccount)
+                                        {
+                                             
+                                    <tr>
+                                        <th scope="row">@rowIndex</th>
+                                        <td>@order.RequestDate.ToString("g") </td>
+                                        <td>@order.StartDate.ToString("g")</td>
+                                        <td>@order.EndDate.ToString("g")</td>
+                                        
+                                        @if (order.IsAccepted)
+                                        {
+                                            <td>Tak</td>
+                                        }
+                                        @if (!order.IsAccepted)
+                                        {
+                                            <td>Nie</td>
+                                        }
+                                        
+                                        <th scope="col">@acc.Email </th>
+                                        <td>
+                                            @foreach(Tuple<Power,int> power in Powers)
+                                                    {
+                                                       
+                                                        @if(power.Item2==acc.IdAccount)
+                                                        {
+                                                            @power.Item1.PowerName <br/>
+                                                        }
+                                                    }
+                                                </td>
+                                                <td>@order.OrderType </td>
+                                        @if (@order.IsReleased != true)
+                                        {
+                                            
+                                                string butt="btn btn-success";
+                                                    string info = "Zaakceptuj";
+                                                    @if(@order.IsAccepted==true)
+                                                    {
+                                                        butt = "btn btn-danger";
+                                                        info = "Odmów";
+                                                    }
+                                                   
+                                            
+                                            <td>
+                                              
+                                                <button class="@butt btn-sm"
+                                    @onclick="@(() => AcceptationChange(order))">
+                                                    @info
+                                                </button>
+                                            </td>
+                                        }
+                                        @if(@order.IsReturned == true)
+                                                {
+                                                   <td>
+                                                        Odebrane
+                                                    </td>  
+                                                }
+                                                else if(@order.IsReleased == true)
+                                                {
+                                                    <td>
+                                                        Wydane
+                                                    </td>
+                                                }
+                                                <td> <button class="btn btn-danger btn-sm" 
+                                                         @onclick="() => OpenDeleteDialog(order)">Usuń</button></td>
+                                    </tr>
+                                    rowIndex++;
+                                        }
+                                    }
+                                   
+                                }
+                            }
+
+
+
+
+                        </tbody>
+                    </table>
+                    
+                </div>
+            </div>
+        </div>
+    }
+           
+            
+            </center>
+        </div>
+        @if (DeleteDialogOrderOpen)
+{
+    <ModalDialog Title="Czy jesteś pewny?"
+                 Text="Czy chcesz usunąć tą rezerwację?"
+                 OnClose="@OnDeleteOrderDialogClose"
+                 DialogType="ModalDialog.ModalDialogType.DeleteCancel">
+    </ModalDialog>
+}
+    </div>
+    
+
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+    private int UserID;
+    private bool isTaken=false;
+    private string choice;
+    private DateTime date;
+    private bool DeleteDialogOrderOpen;
+    private bool isDeleted = false;
+    List<Order> orders = new List<Order>();
+    List<Yacht> yachts = new List<Yacht>();
+    List<Account> accounts = new List<Account>();
+    [Parameter] 
+    public EventCallback<List<Order>> OnDoneCallback { get; set; }
+    [Parameter]
+    public string? HeaderText { get; set; }
+    private List<Tuple<Power, int>> Powers;
+    private Order orderToDelete;
+    protected override async Task OnParametersSetAsync()
+    {
+        Powers = await powerService.GetPowersWithAccountID();
+        String accountId = await sessionStorage.GetItemAsStringAsync("account_id");
+
+        UserID = Int32.Parse(accountId);
+    }
+
+
+    public void Show(DateTime _date, List<Order> _orders,List<Yacht> _yachts, List<Account> _accounts, bool _isTaken)
+    {
+        date = _date;
+        orders = _orders;
+        yachts = _yachts;
+        accounts = _accounts;
+        IsVisible = true;
+        isTaken = _isTaken;
+        StateHasChanged();
+    }
+
+
+    public void Close()
+    {
+        HeaderText = string.Empty;
+
+        IsVisible = false;
+        StateHasChanged();
+      
+    }
+
+
+
+    protected async Task AcceptationChange(Order orderToChange)
+    {
+        if (orderToChange != null)
+        {
+            var temp = !orderToChange.IsAccepted;
+            orderService.updateActeptation(orderToChange.IdOrder,!orderToChange.IsAccepted, UserID);
+
+
+            while(temp!= orderToChange.IsAccepted)
+            {
+                orderToChange = await orderService.GetOrderByID(orderToChange.IdOrder);
+            }
+            orders = await orderService.GetAllOrders();
+
+            orderToChange = null;
+            OnParametersSet();
+            StateHasChanged();
+
+
+        }
+
+
+
+
+    }
+    private void deleteOrder()
+    {
+        if(orderToDelete!=null)
+        {
+            orderService. deleteOrderByID(orderToDelete.IdOrder);
+
+            orderToDelete = null;
+        }
+
+
+
+
+    }
+
+    private void OpenDeleteDialog(Order order)
+    {
+        orderToDelete = order;
+
+        DeleteDialogOrderOpen = true;
+        StateHasChanged();
+    }
+    private async Task OnDeleteOrderDialogClose(bool accepted)
+    {
+        if (accepted)
+        {
+            orders = await orderService.GetAllOrders();
+            int temp = orders.Count -1;
+            deleteOrder();
+            while(orders.Count!=temp)
+            {
+                orders = await orderService.GetAllOrders();
+            }
+        }
+
+        DeleteDialogOrderOpen = false;
+        isDeleted = true;
+         Done();
+       
+        this.StateHasChanged();
+    }
+     public async Task Done()
+{
+    
+    await InvokeAsync(() => OnDoneCallback.InvokeAsync((orders)));              
+}
+
+}

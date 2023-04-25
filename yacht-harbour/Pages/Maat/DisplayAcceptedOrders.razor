@@ -1,0 +1,743 @@
+﻿@page "/Maat/DisplayAcceptedOrders"
+@using DataBaseAccess.Models
+@inject Repository.Services.AccountManagmentService accountService;
+@inject Repository.Services.OrderService orderService;
+@inject Repository.Services.YachtService YachtService;
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject NavigationManager _navigationManager;
+@inject Repository.Services.StatusService statusService;
+@using yacht_harbour.Pages.Popus;
+
+<style>
+    #search {
+  width: 110%;
+  padding: 12px 20px;
+  box-sizing: border-box;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  height: 2em;
+}
+
+#multiselect {
+  width: 110%;
+  padding: 0px 20px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  height: 5em;
+  
+} 
+.row {
+    display: flex;
+}
+.col {
+    flex: 1;
+}
+section {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+}
+
+section > div {
+	border: 1px solid black;
+	
+    height: 12em;
+}
+
+.weekdays {
+  margin: 0;
+  padding: 10px 0;
+  background-color: #1b6ec2;
+}
+
+.weekdays li {
+  display: inline-block;
+  width: 13.6%;
+  color: white;
+  text-align: center;
+  font-size: 23px;
+}
+.month {
+  padding: 10px 25px;
+  width: 100%;
+  height:5em;
+  background: #0b5ed7;
+  text-align: center;
+}
+
+.month ul {
+  margin: 0;
+  padding: 0;
+}
+
+.month div {
+  color: white;
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.month .prev {
+  float: left;
+  padding-top: 10px;
+}
+
+.month .next {
+  float: right;
+  padding-top: 10px;
+}
+</style>
+
+
+
+
+
+@if (isLoaded && isAuthorised)
+{
+    <YachtPopus HeaderText="Wiecej informacji"  @ref="popus"></YachtPopus>
+    <CalendarDayInfoMaat HeaderText="Sprawdź:"  @ref="popup"> </CalendarDayInfoMaat>
+    <div @onclick="getBack" @onmouseover="MouseOut" @onmouseout="MouseIn">
+    <center class="box-shadow">
+        <button type="button" class="btn btn-warning" @onclick="triggerView">@buttonTextView</button>
+        <br/><br/>
+        <div class="row">
+            <div class="col" style="margin-left:35%">
+
+                @if (Yachts != null)
+                {
+                    <input type="text"  id="search" @oninput="FilterYachts" placeholder="Jacht">
+
+                    <select id="multiselect" @onchange="SelectYachts" multiple>
+
+                        @if (filteredOptionYachts != null)
+                        {
+                                int numYacht = 0;
+                        @foreach (var yacht in filteredOptionYachts)
+                        {
+
+
+                            if(triggerCalendarView==true)
+                                {
+                                    <option  style="text-shadow: -0.5px 0 black, 0 0.5px black, 0.5px 0 black, 0 -0.5px black; color: @colors[numYacht].Item1;" value="@yacht.IdYacht" selected> @yacht.YachtName </option>
+                                }
+                                else
+                                {
+                                    <option value="@yacht.IdYacht" selected> @yacht.YachtName </option>
+                                }
+                        
+
+                             numYacht++;
+                        }
+                        }
+                    </select>
+
+                }
+            </div>
+
+
+
+            <div class="col" style="margin-right:35%">
+                @if (accounts != null)
+                {
+                    <input type="text"  id="search" @oninput="FilterAccounts" placeholder="Marynarz">
+                    <select id="multiselect" @onchange="SelectAccounts" multiple>
+                        @if (filteredOptionAccounts != null)
+                        {
+                            @foreach (var acc in filteredOptionAccounts)
+                            {
+                                <option value="@acc.IdAccount" selected> @acc.Name @acc.Surname </option>
+                            }
+                        }
+                    </select>
+                }
+            </div>
+            
+
+
+
+        </div>
+        <div class="col "  >
+            Wydane  <input type="checkbox" id="released" checked="@released" @onchange="SelectReleasedOrders" style="margin-right:1em" /> 
+            Zwrócone  <input type="checkbox" id="returned" checked="@returned"  @onchange="SelectReturnedOrders" style="margin-right:1em"/>       
+            Zaakceptowane  <input type="checkbox" id="accepted" checked="@accepted"  @onchange="SelectAcceptedOrders" />  
+        </div>
+
+    </center>
+    @if (triggerCalendarView == false)
+    {
+        <center>
+        <h4> Wybierz przedział</h4>
+        <form>
+            <input  type="date" id="datemin" @bind-value="lowerDate" >
+            <label> - </label>
+            <input type="date" id="datemax" @bind="upperDate">
+        </form>
+        <br />
+
+
+
+
+        <br/>
+        </center>
+
+        @foreach (Yacht yacht in DisplayYachts)
+        {
+            int index = @DisplayYachts.IndexOf(yacht) + 1;
+            <div class="card m-3" style="min-width: 18rem; max-width:50.auto%;">
+                <div class="card-header text-center">
+                    <h3>Jacht Numer @index</h3>
+                    <h3> Nazwa: @yacht.YachtName</h3>
+                    <h3> Typ: @yacht.Type</h3>
+                    <a class="btn btn-login"  @onclick="() => showInfo(yacht.IdYacht)" >Info</a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" style="overflow-y:scroll; max-height: 20em;   display:block;">
+                        <table class="table table-hover table-dark text-center">
+                            <thead>
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Data dodania</th>
+                                    <th scope="col">Data rozpoczenia</th>
+                                    <th scope="col">Data zakonczenia</th>
+                                    <th scope="col">Zaakceptane</th>
+                                    <th scope="col">Wydane</th>
+                                    <th scope="col">Odebrane</th>
+                                   
+                                    <th scope="col">email</th>
+                                    <th scope="col">Typ</th>
+                                    <th scope="col">Działania</th>
+
+
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @{
+                                    int rowIndex = 1;
+                                }
+
+
+                                @foreach (Order order in DisplayOrders)
+                                {
+                                    @if (order.YachtIdYacht == yacht.IdYacht && ((order.StartDate >= lowerDate && order.StartDate <= upperDate) || (order.EndDate >= lowerDate && order.EndDate <= upperDate)))
+                                    {
+
+                                        @foreach (Account acc in DisplayAccounts)
+                                        {
+                                            @if (acc.IdAccount == order.AccountIdAccount)
+                                            {
+
+                                                <tr>
+                                                    <th scope="row">@rowIndex</th>
+                                                    <td>@order.RequestDate.ToString("g") </td>
+                                                    <td>@order.StartDate.ToString("g")</td>
+                                                    <td>@order.EndDate.ToString("g")</td>
+
+                                                    @if (order.IsAccepted)
+                                                    {
+                                                        <td>Tak</td>
+                                                    }
+                                                    @if (!order.IsAccepted)
+                                                    {
+                                                        <td>Nie</td>
+                                                    }
+                                                    @if (order.IsReleased)
+                                                    {
+                                                        <td>Tak</td>
+                                                    }
+                                                    @if (!order.IsReleased)
+                                                    {
+                                                        <td>Nie</td>
+                                                    }
+                                                    @if (order.IsReturned)
+                                                    {
+                                                        <td>Tak</td>
+                                                    }
+                                                    @if (!order.IsReturned)
+                                                    {
+                                                        <td>Nie</td>
+                                                    }
+                                                  
+                                                    <th scope="col">@acc.Email </th>
+                                                    <td>@order.OrderType</td>
+                                                    <td>
+                                                        @if (@order.IsReleased != true)
+                                                        {
+                                                             <button type="button" class="btn btn-success btn-sm" @onclick="()=>releaseNav(order.IdOrder)">Wydaj</button>
+                                                       
+
+                                                        }
+
+                                                        @if (@order.IsReleased == true && @order.IsReturned != true)
+                                                        {
+                                                           
+                                                             <button type="button" class="btn btn-success btn-sm" @onclick="()=>returnNav(order.IdOrder)">Odbierz</button>
+                                                           
+
+
+                                                        }
+                                                    </td> 
+                                                </tr>
+                                                rowIndex++;
+                                            }
+                                        }
+
+                                    }
+                                }
+
+
+
+
+                            </tbody>
+                        </table>
+
+                    </div>
+                </div>
+            </div>
+        }
+
+    }
+    @if(triggerCalendarView==true)
+    {
+        
+        <center>
+         <div class="month">      
+         
+            <div class="prev"><button type="button" class="btn btn-light" @onclick="() => { monthsAway--; CreateMonth(); }">Poprzedni</button></div>
+            <div class="next"> <button type="button" class="btn btn-light" @onclick="() => { monthsAway++; CreateMonth(); }">Następny</button></div>
+            <div>
+                @monthName<br>
+      <span style="font-size:18px">@year</span>
+    </div>
+  
+</div>
+
+
+        
+           
+           
+        <ul class="weekdays">
+            <li>Pon</li>
+            <li>Wt</li>
+            <li>Śr</li>
+            <li>Cz</li>
+            <li>Pt</li>
+            <li>So</li>
+            <li>Nd</li>
+        </ul>
+        <section>
+	        @for (int i = 0; i < numDummyColumn; i++)
+	        {
+		        <div></div>
+	        }
+            @{DateTime start = new DateTime();}
+            @{DateTime end = new DateTime();}
+            @{Order orderTemp =new Order();}
+	        @for (int i = 1; i <= monthEnd.Day; i++)
+	        {
+		    bool isEmpty = true;
+                
+                var newDate = new DateTime(year, month, i);
+                bool isFirst = true;
+
+		    
+           <div style="background-color: RoyalBlue">
+                            <div @onclick="()=>selectDate(newDate)">
+			            <h2>@i</h2></div>
+                        @{isFirst=false;}
+                        @for(int j=0;j<24;j++)
+                                {
+                                    int numYacht=0;
+                                    <div  class="row" style="background:none;width:100%; height:3.15%;" >
+                                    @foreach(Yacht y in DisplayYachts)
+                                    {
+                                        
+                                          
+                                            int temp =100/@DisplayYachts.Count ;
+                                             var dateHour = new DateTime(year, month, i);
+                                            dateHour=dateHour.AddHours(j);
+                                            var dateHourEnd=dateHour.AddHours(1);
+                                            string col = (colors.First(c => c.Item2 == y.IdYacht)).Item1;
+                                if (DisplayOrders.Any(o=>o.YachtIdYacht==y.IdYacht && o.StartDate<=dateHour && o.EndDate>= dateHourEnd && DisplayAccounts.Any(a=>a.IdAccount==o.AccountIdAccount) ))
+                                    {
+                                        
+                                        <div  @onclick="()=>selectTakenDate(dateHour,y.IdYacht)" class="column" style="background:@col; border: 0.25px solid black; width:@temp%;"></div>
+                                    }
+                                    else
+                                    {
+                                        <div @onclick="()=>selectDate(dateHour)" class="column" style="background:none; border: 0.25px solid black; width:@temp%;"></div>
+                                    }
+                                             
+                                numYacht++;
+                                    }
+                                    </div>
+                                    
+
+                                }
+                       
+                        </div>
+                
+               
+                
+
+
+        }
+</section>
+    </center>
+} </div>
+}
+   
+
+
+@if (!isAuthorised)
+{
+    <h2>Nie jesteś autoryzowany do uzyskania tego zasobu!</h2>
+}
+
+
+@code {
+    private DateTime lowerDate; 
+    private DateTime upperDate;
+    private int UserID;
+    private Account account { get; set; }
+    private List<Yacht> Yachts;
+    private Order orderToDelete;
+    private List<Order> Orders;
+    private bool isLoaded;
+    private bool DeleteDialogOrderOpen;
+    private List<Yacht> DisplayYachts = new List<Yacht>();
+    private List<Account> DisplayAccounts = new List<Account>();
+
+    private List<Order> DisplayOrders = new List<Order>();
+    private List<Account> accounts;
+    private bool ToReturn = false;
+
+    List<Tuple<int, List<Order>>> YachtsWithOrders = new List<Tuple<int, List<Order>>>();
+    private bool isAuthorised = true;
+
+
+    private List<Yacht> filteredOptionYachts = new List<Yacht>();
+    private List<Account> filteredOptionAccounts = new List<Account>();
+    private string buttonText;
+    private YachtPopus popus;
+    private CalendarDayInfoMaat popup;
+    private string buttonTextView;
+    private bool triggerCalendarView = false;
+    string monthName = "";
+    DateTime monthEnd;
+    int monthsAway = 0;
+    int numDummyColumn = 0;
+    int year = 2023;
+    int month = 0;
+     string lastColor = "";
+    List<Tuple<string, int>> colors = new List<Tuple<string, int>>();
+    private bool released, returned, accepted;
+     bool IsInside; 
+     string[] colorPalette = { "#a50026","#d73027","#f46d43","#fdae61","#fee08b","#ffffbf","#d9ef8b","#a6d96a","#66bd63","#1a9850","#006837" };
+    protected override async Task OnParametersSetAsync()
+    {
+        authorizationHandle();
+        
+        buttonText = "Pokaż niezwrócone";
+        buttonTextView = "Pokaż jako kanendarz";
+        
+        lowerDate = DateTime.Now;
+        upperDate = lowerDate.AddMonths(1);
+        Orders = await orderService.GetAllAcceptedOrders();
+        Yachts = await YachtService.GetYachts();
+        DisplayOrders = Orders;
+        DisplayYachts = Yachts;
+        accounts = await accountService.GetAccounts();
+        DisplayAccounts = accounts;
+        filteredOptionYachts = Yachts;
+        filteredOptionAccounts = accounts;
+        getPreviousState();
+        CreateMonth();
+        for (int i = 0; i < filteredOptionYachts.Count; i++)
+        {
+            Tuple<string, int> temp2;
+
+
+            var temp = new Tuple<string, int>(colorPalette[i % 11], filteredOptionYachts[i].IdYacht);
+            colors.Add(temp);
+            lastColor = temp.Item1;
+        }
+        isLoaded = true;
+
+    }
+    public async void authorizationHandle()
+    {
+        try
+        {
+            await authorizeAccount();
+        }
+        catch // assuming account of a given ID has not been found
+        {
+            isAuthorised = false;
+        }
+    }
+
+
+    public async Task authorizeAccount()
+    {
+        if(await sessionStorage.GetItemAsStringAsync("role")=="Maat")
+        {
+            String accountId = await sessionStorage.GetItemAsStringAsync("account_id");
+
+            UserID = Int32.Parse(accountId);
+            account = await accountService.GetAccountByID(Int32.Parse(accountId));
+        }
+        else
+            isAuthorised = false;
+
+    }
+
+    private void showInfo(int id)
+    {
+        popus.Show(id);
+    }
+
+    private void SelectYachts(ChangeEventArgs e)
+    {
+        DisplayYachts = new List<Yacht>();
+        var selected = (string[])e.Value;
+        foreach(var s in selected)
+        {
+            var temp = Task.Run(async () =>  await YachtService.getYachtById(Int32.Parse(s)));
+            DisplayYachts.Add(temp.Result);
+        }
+
+    }
+    private void SelectAccounts(ChangeEventArgs e)
+    {
+        DisplayAccounts = new List<Account>();
+        var selected = (string[])e.Value;
+        foreach(var s in selected)
+        {
+            var temp = Task.Run(async () =>  await accountService.GetAccountByID(Int32.Parse(s)));
+            DisplayAccounts.Add(temp.Result);
+        }
+
+    }
+
+
+    private void SelectReleasedOrders(ChangeEventArgs e)
+    {
+        released = (bool)e.Value;
+
+        SelectOrders();
+
+
+    }
+    private void SelectReturnedOrders(ChangeEventArgs e)
+    {
+        returned = (bool)e.Value;
+        if (returned == true)
+            released = true;
+        SelectOrders();
+
+
+    }
+    private void SelectAcceptedOrders(ChangeEventArgs e)
+    {
+        accepted = (bool)e.Value;
+
+        SelectOrders();
+
+
+    }
+    private void SelectOrders()
+    {
+        List<Order> temp = new List<Order>();
+        if (returned == true)
+            temp.AddRange(Orders.Where(o => ((o.IsReturned == returned))).ToList());
+        if (released == true)
+            temp.AddRange(Orders.Where(o => ((o.IsReleased == released && o.IsReturned == false))).ToList());
+
+        if (accepted ==true)
+            temp.AddRange(Orders.Where(o => ((o.IsReleased == false && o.IsReturned ==false && o.IsAccepted==accepted))).ToList());
+        if (returned == false && accepted ==  false && released == false)
+            temp = Orders;
+        DisplayOrders = temp;
+
+
+        
+    }
+    
+
+    private void FilterYachts(ChangeEventArgs args)
+    {
+        
+        string temp = args.Value.ToString();
+        if (temp != null)
+            filteredOptionYachts = Yachts.Where(o => o.YachtName.ToUpperInvariant().Contains(temp.ToUpperInvariant())).ToList();
+        else
+            filteredOptionYachts = Yachts;
+         if (filteredOptionYachts.Count == 1)
+        {
+            DisplayYachts = new List<Yacht>();
+            DisplayYachts.Add(filteredOptionYachts[0]);
+        }
+    }
+    private string RandomColor(string last)
+    {
+        string color="#1e90ff";
+        var random = new Random();
+        while(color=="#1e90ff" || color==last)
+        {
+            color = String.Format("#{0:X6}", random.Next(0x1000000));
+        }
+
+
+        return color;
+
+
+    }
+    private void FilterAccounts(ChangeEventArgs args)
+    {
+        string[] temp = args.Value.ToString().Split(' ');
+
+
+        if (temp != null)
+        {
+            if (temp.Length==1)
+            {
+                temp = new[] { temp[0], "" };
+            }
+
+
+            filteredOptionAccounts = accounts.Where(o => (o.Name.ToUpperInvariant().Contains(temp[0].ToUpperInvariant()) && o.Surname.ToUpperInvariant().Contains(temp[1].ToUpperInvariant())) || (o.Surname.ToUpperInvariant().Contains(temp[0].ToUpperInvariant()) && o.Name.ToUpperInvariant().Contains(temp[1].ToUpperInvariant())) ).ToList();
+        }
+        else
+            filteredOptionAccounts = accounts;
+         if (filteredOptionAccounts.Count == 1)
+        {
+            DisplayAccounts = new List<Account>();
+            DisplayAccounts.Add(filteredOptionAccounts[0]);
+        }
+    }
+    private async void triggerView()
+    {
+        if (triggerCalendarView == true)
+        {
+            triggerCalendarView = false;
+            buttonTextView = "Pokaż jako kanendarz";
+            await sessionStorage.SetItemAsStringAsync("view", "list");
+
+        }
+
+        else
+        {
+            triggerCalendarView = true;
+            buttonTextView = "Pokaż jako listę";
+            await sessionStorage.SetItemAsStringAsync("view", "calendar");
+
+        }
+
+        this.StateHasChanged();
+    }
+    void CreateMonth()
+    {
+        var tempDate = DateTime.Now.AddMonths(monthsAway);
+        month = tempDate.Month;
+        year = tempDate.Year;
+
+        DateTime monthStart = new DateTime(year, month, 1);
+        monthEnd = monthStart.AddMonths(1).AddDays(-1);
+        monthName = monthStart.Month switch
+        {
+            1 => "styczeń",
+            2 => "luty",
+            3 => "Marzec",
+            4 => "kwiecień",
+            5 => "maj",
+            6 => "Czerwiec",
+            7 => "Lipiec",
+            8 => "sierpień",
+            9 => "wrzesień",
+            10 => "październik",
+            11 => "listopad",
+            12 => "grudzień",
+            _ => ""
+        };
+
+        numDummyColumn = (int)monthStart.DayOfWeek -1;
+        if (numDummyColumn == -1)
+            numDummyColumn = 6;
+    }
+    public void selectDate(DateTime date)
+    {
+        IsInside = true;
+        popup.Show(date, DisplayOrders, DisplayYachts, DisplayAccounts, false);
+    }
+    public async Task selectTakenDate(DateTime date, int id)
+    {
+        IsInside = true;
+        var temp = new List<Yacht>();
+        temp.Add(await YachtService.getYachtById(id));
+        popup.Show(date, await orderService.GetYachtOrders(id),temp , DisplayAccounts, true);
+    }
+
+    public async Task getPreviousState()
+    {
+        if(await sessionStorage.GetItemAsStringAsync("view")!=null)
+        {
+            var temp = await sessionStorage.GetItemAsStringAsync("view");
+            if (temp == "list")
+            {
+                triggerCalendarView = false;
+                buttonTextView = "Pokaż jako kanendarz";
+
+
+            }
+
+            else if(temp == "calendar")
+            {
+                triggerCalendarView = true;
+                buttonTextView = "Pokaż jako listę";
+
+
+            }
+        }
+        if(await sessionStorage.GetItemAsStringAsync("start")!=null && await sessionStorage.GetItemAsStringAsync("end")!=null)
+        {
+            lowerDate = DateTime.Parse(await sessionStorage.GetItemAsStringAsync("start"));
+            upperDate = DateTime.Parse(await sessionStorage.GetItemAsStringAsync("end"));
+            
+        }
+        this.StateHasChanged();
+    }
+  
+    private async Task releaseNav(int id)
+    {
+         await sessionStorage.SetItemAsStringAsync("start", lowerDate.ToString());
+          await sessionStorage.SetItemAsStringAsync("end", upperDate.ToString());
+        _navigationManager.NavigateTo("/Maat/Release/" +id);
+
+    }
+      private async Task returnNav(int id)
+    {
+         await sessionStorage.SetItemAsStringAsync("start", lowerDate.ToString());
+          await sessionStorage.SetItemAsStringAsync("end", upperDate.ToString());
+        _navigationManager.NavigateTo("/Maat/Return/"+id);
+
+    }
+     void MouseIn()
+    {
+        IsInside= true;
+    } 
+    void MouseOut()
+    {
+        IsInside= false;
+    }
+
+    void getBack()
+    {
+
+        if(!IsInside && popup.IsVisible==true)
+        {
+            popup.Close();
+        }
+}
+
+}

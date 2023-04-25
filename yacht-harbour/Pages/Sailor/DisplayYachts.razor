@@ -1,0 +1,330 @@
+﻿@page "/Sailor/DisplayYachts"
+@using DataBaseAccess.Models
+@inject Repository.Services.AccountManagmentService accountService;
+@inject Repository.Services.OrderService orderService;
+@inject Repository.Services.YachtService YachtService;
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject NavigationManager _navigationManager;
+@using yacht_harbour.Pages.Sailor.Modal
+@using yacht_harbour.Pages.Popus;
+
+
+
+<style>
+    #search {
+  width: 110%;
+  padding: 12px 20px;
+  box-sizing: border-box;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  height: 2em;
+}
+
+#multiselect {
+  width: 110%;
+  padding: 0px 20px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  height: 5em;
+  
+} 
+.row {
+    display: flex;
+}
+.col {
+    flex: 1;
+}
+</style>
+
+@if(isLoaded && isAuthorised){
+
+    <YachtPopus HeaderText="Wiecej informacji"  @ref="popus"></YachtPopus>
+   <center>
+        <h4> Wybierz przedział</h4>
+           <form>
+             <input  type="date" id="datemin" @bind-value="lowerDate" >
+             <label> - </label>
+             <input type="date" id="datemax" @bind="upperDate">
+           </form>
+           <br/>
+        <div class="row"  style="width: 30%">
+                 
+                     
+                     @if(Yachts!=null)
+                       {
+                        <input type="text"  id="search" @oninput="FilterYachts" placeholder="Jacht">
+                   
+                       <select id="multiselect" @onchange="SelectYachts" multiple>
+    
+                           @if(filteredOptionYachts!=null)
+                           {
+                            @foreach (var yacht in filteredOptionYachts)
+                              {
+                          
+
+                                <option value="@yacht.IdYacht"> @yacht.YachtName </option>
+                              }
+                           }
+                        </select>
+                
+                       }
+                
+                </div>
+          
+    
+      
+</center>
+<br/>
+
+
+<br/>
+
+    @foreach (Yacht yacht in displayYachts)
+    {
+
+        int index = @displayYachts.IndexOf(yacht) + 1;
+        <div class="card m-3" style="min-width: 18rem; max-width:50.auto%;">
+            <div class="card-header text-center">
+                <h3>Jacht Numer @index</h3>
+                <h3> Nazwa: @yacht.YachtName</h3>
+                <h3> Typ: @yacht.Type</h3>
+                <a class="btn btn-login"  @onclick="() => showInfo(yacht.IdYacht)" >Info</a>
+            </div>
+            <div class = "card-body">
+                <div class="table-responsive" style="overflow-y:scroll; max-height: 20em;   display:block;">
+                    <table class="table table-hover table-dark text-center">
+                      <thead>
+                        <tr>
+                          <th scope="col">#</th>
+                          <th scope="col">Data dodania</th>
+                          <th scope="col">Data rozpoczenia</th>
+                          <th scope="col">Data zakonczenia</th>
+                          <th scope="col">Zaakceptane</th>
+                          <th scope="col">Wydane</th>
+                          <th scope="col">Działanie</th>
+                          
+                        </tr>
+                      </thead>
+                      <tbody>
+                      @{ int rowIndex = 1;}
+                      
+                      
+                                    @foreach(Order order in  Orders)
+                                    {
+                                        @if(order.YachtIdYacht==yacht.IdYacht)
+                                {
+                                <tr>
+                                <th scope="row">@rowIndex</th>
+                                <td>@order.RequestDate.ToString("g") </td>
+                                <td>@order.StartDate.ToString("g")</td>
+                                <td>@order.EndDate.ToString("g")</td>
+                                
+                                @if(order.IsAccepted)
+                                        {
+                                            <td>Tak</td>
+                                        }
+                                @if(!order.IsAccepted)
+                                        {
+                                            <td>Nie</td>
+                                        }      
+                                @if(order.IsReleased)
+                                        {
+                                            <td>Tak</td>
+                                        }
+                                @if(!order.IsReleased)
+                                        {
+                                            <td>Nie</td>
+                                        }      
+
+                                        
+                                
+                                                     <td>
+                                                       @if(@order.IsReleased!=true)
+                                                        {
+                                                        <a href="/Sailor/EditOrder/@order.YachtIdYacht/@order.IdOrder" class="btn btn-success btn-sm">Edytuj</a>
+                                                        <button class="btn btn-danger btn-sm" 
+                                                         @onclick="() => OpenDeleteDialog(order)">Usuń</button>
+                                                        }
+                                                    </td>
+                                                
+                               
+                                </tr>
+                                rowIndex++;
+                                }
+                                    }
+                                
+                                
+                          
+                   
+
+                      </tbody>
+                    </table>
+                    
+                    
+                  </div>
+            </div>
+        </div>
+        @if(yacht.IsAvailable)
+                    {
+                        <div class="col-md-12 text-center">
+                        <a href="/Sailor/AddOrder/@yacht.IdYacht" text-center class="btn btn-success btn-sm">Dodaj nową rezerwację</a>
+                    </div>
+                    }
+    }
+}
+
+@if (DeleteDialogOrderOpen)
+{
+    <ModalDialog Title="Czy jesteś pewny?"
+                 Text="Czy chcesz usunąć tą rezerwację?"
+                 OnClose="@OnDeleteOrderDialogClose"
+                 DialogType="ModalDialog.ModalDialogType.DeleteCancel">
+    </ModalDialog>
+}
+
+@if (!isAuthorised)
+{
+    <h2>Nie jesteś autoryzowany do uzyskania tego zasobu!</h2>
+}
+
+
+@code {
+
+    private int UserID ;
+    private Account account{ get; set; }
+    private List<Yacht> Yachts;
+    private Order orderToDelete;
+    private List<Order> Orders;
+    private bool isLoaded;
+    private bool DeleteDialogOrderOpen;
+    private YachtPopus popus;
+    private List<Account> accounts;
+    List<Tuple<int, List<Order>>> YachtsWithOrders = new List<Tuple<int, List<Order>>>();
+    private bool isAuthorised = true;
+    int accountId;
+    private List<Yacht> displayYachts = new List<Yacht>();
+
+    private DateTime lowerDate; 
+    private DateTime upperDate;
+    private List<Yacht> filteredOptionYachts = new List<Yacht>();
+
+
+    protected override async Task OnParametersSetAsync()
+    {
+        authorizationHandle();
+
+        accountId = Int32.Parse(await sessionStorage.GetItemAsStringAsync("account_id"));
+        Orders = await orderService.GetUserOrders(accountId);
+        Yachts = await YachtService.GetYachts();
+        displayYachts = Yachts;
+
+        upperDate = DateTime.Now;
+        lowerDate = DateTime.Now.AddMonths(-1);
+        filteredOptionYachts = Yachts;
+
+        isLoaded = true;
+  
+
+
+    }
+    public async void authorizationHandle()
+    {
+        try
+        {
+            await authorizeAccount();
+        }
+        catch // assuming account of a given ID has not been found
+        {
+            isAuthorised = false;
+        }
+    }
+
+
+    public async Task authorizeAccount()
+    {
+
+        String accountId = await sessionStorage.GetItemAsStringAsync("account_id");
+
+        UserID = Int32.Parse(accountId);
+        account = await accountService.GetAccountByID(Int32.Parse(accountId));
+
+
+
+    }
+
+    private void deleteOrder()
+    {
+        if(orderToDelete!=null)
+        {
+            orderService. deleteOrderByID(orderToDelete.IdOrder);
+
+            orderToDelete = null;
+        }
+
+
+
+
+    }
+
+    private void OpenDeleteDialog(Order order)
+    {
+        orderToDelete = order;
+
+        DeleteDialogOrderOpen = true;
+        StateHasChanged();
+    }
+
+    private async Task OnDeleteOrderDialogClose(bool accepted)
+    {
+        if (accepted)
+        {
+            deleteOrder();
+            int temp = Orders.Count-1;
+            while(Orders.Count!=temp)
+            {
+                Orders = await orderService.GetUserOrders(accountId);
+            }
+        }
+
+        DeleteDialogOrderOpen = false;
+        
+        
+       
+        this.StateHasChanged();
+    }
+    
+    private void showInfo(int id)
+    {
+        popus.Show(id);
+    }
+
+    private void SelectYachts(ChangeEventArgs e)
+    {
+        displayYachts = new List<Yacht>();
+        var selected = (string[])e.Value;
+        foreach(var s in selected)
+        {
+           var temp = Task.Run(async () =>  await YachtService.getYachtById(Int32.Parse(s)));
+           displayYachts.Add(temp.Result);
+        }
+       
+    }
+
+    private void FilterYachts(ChangeEventArgs args)
+    {
+
+        string temp = args.Value.ToString();
+        if (temp != null)
+            filteredOptionYachts = Yachts.Where(o => o.YachtName.ToUpperInvariant().Contains(temp.ToUpperInvariant())).ToList();
+        else
+            filteredOptionYachts = Yachts;
+        if (filteredOptionYachts.Count == 1)
+        {
+            displayYachts = new List<Yacht>();
+            displayYachts.Add(filteredOptionYachts[0]);
+        }
+    }
+   
+}

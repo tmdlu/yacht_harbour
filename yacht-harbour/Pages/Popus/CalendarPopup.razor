@@ -1,0 +1,174 @@
+﻿@using yacht_harbour.Data
+@using DataBaseAccess.Models
+
+@{
+    var showClass = IsVisible ? "d-block" : "d-none";
+}
+
+
+
+
+
+    <div  class="toast-container p-3 @showClass" data-bs-autohide="true" data-bs-delay="5000" style="position: fixed; z-index: 9999;left:50%; transform: translate(-50%, 0px);">
+        <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true">
+            <center>
+            <div class="toast-header">
+                <strong class="me-auto">@HeaderText</strong>
+                <button type="button" class="btn-close" aria-label="Close" @onclick="Close"></button>
+            </div>
+            
+                
+            @if(isTaken==false)
+            {
+                
+            
+            <div class="toast-body">
+                <EditForm Model="@date">
+               <InputDateTime id="date" @bind-Value="date"></InputDateTime>
+               </EditForm>
+                <br/>
+                <div class="row" >
+                    
+                        <button  style="width:40%; margin:5%"type="button" class="btn-primary" aria-label="Początek" @onclick="Start">Poczatek</button>
+                  
+                
+                    <button  style="width:40%;margin:5%" type="button" class="btn-primary" aria-label="Koniec" @onclick="End">koniec</button>
+                
+                </div>
+            </div>
+            }
+                 
+
+        
+            @if(orders!=null)
+            {
+                
+            
+            <div class = "card-body">
+                <div class="table-responsive" style="overflow-y:scroll; max-height: 40em;   display:block;">
+                    <table class="table table-hover table-dark text-center">
+                      <thead>
+                        <tr>
+
+                          <th scope="col">Data rozpoczenia</th>
+                          <th scope="col">Data zakonczenia</th>
+                          <th scope="col">Jacht</th>
+                          
+                          
+                        </tr>
+                      </thead>
+                      <tbody>
+                                    @foreach (Order order in  orders )
+                                     {      
+                                
+                      
+                                    @foreach(Yacht yacht in yachts)
+                                    {
+                                        if((((yachts.Count>1 || (date.Hour==00 && date.Minute==00)) && order.EndDate.Date>=date.Date && order.StartDate.Date<=date.Date )|| (yachts.Count==1 && order.EndDate>=date && order.StartDate<=date)) && yacht.IdYacht==order.YachtIdYacht)
+                                {
+                                    <tr>
+                                
+                                
+                                    <td>@order.StartDate.ToString("g")</td>
+                                    <td>@order.EndDate.ToString("g")</td>
+                                   
+                                    <td>@yacht.YachtName</td>
+                                            
+                                            
+                                    </tr>
+                                }
+                                
+                                
+                               
+                                    }
+                                }
+                                
+                          
+                   
+
+                      </tbody>
+                    </table>
+                    
+                    
+                  </div>
+            </div>
+           }
+            
+            </center>
+        </div>
+    </div>
+
+@code {
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    private bool isTaken=false;
+    private string choice;
+    private DateTime date;
+    List<Order> orders = new List<Order>();
+    List<Yacht> yachts = new List<Yacht>();
+    [Parameter] 
+    public EventCallback<(string, DateTime)> OnDoneCallback { get; set; }
+    [Parameter]
+    public string? HeaderText { get; set; }
+
+
+    
+
+
+
+
+
+    public void Show(DateTime _date, List<Order> _orders,List<Yacht> _yachts, bool _isTaken)
+    {
+        date = _date;
+        orders = _orders;
+        yachts = _yachts;
+        IsVisible = true;
+        isTaken = _isTaken;
+        
+        StateHasChanged();
+    }
+     public void Show(DateTime _date)
+    {
+        date = _date;
+        orders = null;
+        IsVisible = true;
+
+        StateHasChanged();
+    }
+    
+
+    public void Close()
+    {
+        HeaderText = string.Empty;
+
+        IsVisible = false;
+        StateHasChanged();
+    }
+
+    private void Start()
+    {
+        HeaderText = string.Empty;
+        choice = "start";
+        IsVisible = false;
+        Done();
+        StateHasChanged();
+    }
+     private void End()
+    {
+        HeaderText = string.Empty;
+        choice = "end";
+        IsVisible = false;
+        Done();
+        StateHasChanged();
+    }
+    public async Task Done()
+{
+    
+    await InvokeAsync(() => OnDoneCallback.InvokeAsync((choice,date)));              
+}
+
+
+
+}

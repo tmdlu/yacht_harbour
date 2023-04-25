@@ -1,0 +1,121 @@
+﻿@using yacht_harbour.Data
+
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inherits LayoutComponentBase
+<nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+    <div class="container">
+        <a class="navbar-brand" href="">Przystań</a>
+         <button class="navbar-toggler" type="button" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+         <div class="@NavMenuCssClass"  @onclick="ToggleNavMenu">
+            <ul class="navbar-nav flex-grow-1">
+       
+                
+                 <AuthorizeView Roles="Sailor" >
+                    <Authorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link text-dark" href="Sailor/DisplayYachts">
+                                <span class="material-icons md-18">directions_boat</span>Jachty
+                            </NavLink>
+                        </li>
+                       
+                    </Authorized>
+                </AuthorizeView>  
+                <AuthorizeView Roles="Boatswain">
+                    <Authorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link text-dark" href="Boatswain/DisplayOrders">
+                                <span class="material-icons md-18">article</span>Zamowienia
+                            </NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link text-dark" href="Boatswain/AddManyOrders">
+                                <span class="material-icons md-18">library_books</span>Dodaj rezerwacje
+                            </NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link text-dark" href="Boatswain/DisplayLowerAccounts">
+                                <span class="material-icons md-18">accessibility</span>Użytkownicy
+                            </NavLink>
+                        </li>
+                         <li class="nav-item">
+                            <NavLink class="nav-link text-dark" href="Boatswain/YachtsManagment">
+                                <span class="material-icons md-18">directions_boat</span>Jachty
+                            </NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link text-dark" href="Supervisor/DisplayStatuses">
+                                <span class="material-icons md-18">anchor</span>Statusy
+                            </NavLink>
+                        </li>
+                
+                    </Authorized>
+                </AuthorizeView>  
+
+                 <AuthorizeView Roles="Maat">
+                    <Authorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link text-dark" href="Maat/DisplayAcceptedOrders">
+                                <span class="material-icons md-18">article</span>Zamowienia
+                            </NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link text-dark" href="Supervisor/DisplayStatuses">
+                                <span class="material-icons md-18">anchor</span>Statusy
+                            </NavLink>
+                        </li>
+                    </Authorized>
+                </AuthorizeView>  
+                 <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link text-dark" href="Admin/DisplayAccounts">
+                                <span class="material-icons md-18">accessibility</span>Użytkownicy
+                            </NavLink>
+                        </li>
+                    
+                       
+                    </Authorized>
+                </AuthorizeView> 
+                
+                
+
+               
+            </ul>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                 
+                <a class="custom-class text-center col-4 col-sm-3 col-md-3  themed-grid-col mx-2" href="/Account/Info" >Witamy @context.User.Identity.Name</a>
+                <a class="custom-class text-center col-4 col-sm-3 col-md-1 themed-grid-col" href="/" @onclick="(() => Logout())">Wyloguj</a>
+                 
+            </Authorized>
+            <NotAuthorized>
+              
+                <a class="custom-class text-center col-4 col-sm-3 col-md-2  themed-grid-col mx-2" href="/login">Zaloguj się</a>
+                <a class="custom-class text-center col-4 col-sm-3 col-md-3 themed-grid-col" href="/register">Zarejestruj się</a>
+                
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</nav>
+
+@code {
+    bool collapseNavMenu = true;
+    string baseMenuClass = "navbar-collapse d-sm-inline-flex flex-sm-row-reverse";
+    string NavMenuCssClass => baseMenuClass + (collapseNavMenu ? " collapse" : "");
+    void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+    public void Logout()
+    {
+        ((CustomAuthenticationStateProvider)AuthenticationStateProvider).MarkUserAsLoggedOut();
+        NavigationManager.NavigateTo("/");
+    }
+
+ 
+}

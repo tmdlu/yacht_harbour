@@ -1,0 +1,612 @@
+﻿@page "/Sailor/AddOrder/"
+@page "/Sailor/AddOrder/{yachtID:int}"
+@page "/Sailor/EditOrder/{yachtID:int}/{orderID:int}"
+@using DataBaseAccess.Models
+@using yacht_harbour.Models
+@using yacht_harbour.Data
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject Repository.Services.AccountManagmentService accountService;
+@inject Repository.Services.OrderService orderService;
+@inject Repository.Services.YachtService YachtService;
+@inject NavigationManager navigationManager
+@using yacht_harbour.Pages.Popus;
+<style>
+section {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+}
+
+section > div {
+	border: 1px solid black;
+	
+    height: 12em;
+}
+
+.weekdays {
+  margin: 0;
+  padding: 10px 0;
+  background-color: #1b6ec2;
+}
+
+.weekdays li {
+  display: inline-block;
+  width: 13.6%;
+  color: white;
+  text-align: center;
+  font-size: 23px;
+}
+.month {
+  padding: 10px 25px;
+  width: 100%;
+  height:5em;
+  background: #0b5ed7;
+  text-align: center;
+}
+
+.month ul {
+  margin: 0;
+  padding: 0;
+}
+
+.month div {
+  color: white;
+  font-size: 20px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.month .prev {
+  float: left;
+  padding-top: 10px;
+}
+
+.month .next {
+  float: right;
+  padding-top: 10px;
+}
+
+
+</style>
+@if (isLoaded && isAuthorised)
+{
+
+    <CalendarPopup HeaderText="Ustaw jako:"  @ref="popup" OnDoneCallback="@((args)=> OnModalDone(args.Item1,args.Item2))"> </CalendarPopup>
+   <div @onclick="getBack" @onmouseover="MouseOut" @onmouseout="MouseIn">
+    <center class="box-shadow"> 
+         @if(Yachts!=null && orderID==null)
+                       {
+                        <input style="width:15%" type="text"  id="search" @oninput="FilterYachts" placeholder="Jacht">
+                        <br/>
+                       <select style="width:15%" id="multiselect" @onchange="SelectYachts" multiple>
+    
+                           @if(filteredOptionYachts!=null)
+                           {
+                             int numYacht = 0;
+                            @foreach (var yacht in filteredOptionYachts)
+                            {
+
+                                if(first && yachtID==yacht.IdYacht)
+                            {
+                            <option  style="text-shadow: -0.5px 0 black, 0 0.5px black, 0.5px 0 black, 0 -0.5px black; color: @colors[numYacht].Item1;" value="@yacht.IdYacht" selected> @yacht.YachtName </option>
+                            }
+                            else
+                            {
+                             <option  style="text-shadow: -0.5px 0 black, 0 0.5px black, 0.5px 0 black, 0 -0.5px black; color: @colors[numYacht].Item1;" value="@yacht.IdYacht"> @yacht.YachtName </option>
+                            }
+                        
+                        
+
+                                 numYacht++;
+                            }
+                           }
+                        </select>
+                
+                       }
+        <div class ="flex_container">
+            <div class ="flex-item1">
+                <EditForm Model="@orderData" OnValidSubmit="@performOperation">
+                    <div>
+                        <div class="row">
+                            <div class="flex-md-column mx-auto pr-3"><p>Rozpoczecie:</p>
+                                <InputDateTime id="start_date" @bind-Value="orderData.start_date"></InputDateTime>
+                                
+                            </div>
+                        </div>
+                        <br/>
+                        <div class="row">
+                            <div  class="flex-md-column mx-auto pr-3"><p>Zakonczenie:</p>
+                                 <InputDateTime id="end_date" @bind-Value="orderData.end_date"></InputDateTime>
+                                 
+                            </div>
+                        </div>
+          
+                        <br/>
+                    </div>
+                    <div class="box-shadow"> 
+                        <DataAnnotationsValidator/>
+                        <ValidationSummary/>  
+                    </div>
+                    <br />
+                        <div class="form-group">
+                             @if(DisplayYachts.Count==1)
+                        {
+                            <button type="submit" class="btn btn-primary mb-3">Dodaj rezerwacje</button>
+                        }
+                        else
+                        {
+                            <p>Aby zarezerwować wybierz jedynie jeden jacht</p>
+                        }
+
+                            <a href="/Sailor/DisplayYachts" class="btn btn-danger mb-3">Anuluj</a>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+
+        <br/>
+        <div class="month">      
+         
+            <div class="prev"><button type="button" class="btn btn-light" @onclick="() => { monthsAway--; CreateMonth(); }">Poprzedni</button></div>
+            <div class="next"> <button type="button" class="btn btn-light" @onclick="() => { monthsAway++; CreateMonth(); }">Następny</button></div>
+            <div>
+                @monthName<br>
+      <span style="font-size:18px">@year</span>
+    </div>
+  
+</div>
+
+
+        
+           
+           
+        <ul class="weekdays">
+            <li>Pon</li>
+            <li>Wt</li>
+            <li>Śr</li>
+            <li>Cz</li>
+            <li>Pt</li>
+            <li>So</li>
+            <li>Nd</li>
+        </ul>
+        <section>
+	        @for (int i = 0; i < numDummyColumn; i++)
+	        {
+		        <div></div>
+	        }
+            @{DateTime start = new DateTime();}
+            @{DateTime end = new DateTime();}
+	        @for (int i = 1; i <= monthEnd.Day; i++)
+	        {
+		    bool isEmpty = true;
+                
+                var newDate = new DateTime(year, month, i);
+                bool isFirst = true;
+
+		    
+            <div style="background-color: RoyalBlue">
+                        <div @onclick="()=>selectDay(newDate)">
+			            <h2>@i</h2></div>
+                        @{isFirst=false;}
+                         @for(int j=0;j<24;j++)
+                                {
+                                    int numYacht=0;
+                                    var dateHour = new DateTime(year, month, i);
+                                    dateHour=dateHour.AddHours(j);
+                                    
+                                    var dateHourEnd=dateHour.AddHours(1);
+                                    
+                                    <div  class="row" style="background:none;width:100%; height:3.15%;" >
+                                    @foreach(Yacht y in DisplayYachts)
+                                    {
+                                        
+                                          
+                                            int temp =100/@DisplayYachts.Count ;
+                                             
+                                            string col = (colors.First(c => c.Item2 == y.IdYacht)).Item1;
+                                if (Orders.Any(o=>o.YachtIdYacht==y.IdYacht && o.StartDate<=dateHour && o.EndDate>= dateHourEnd ))
+                                    {
+                                        dateHour=dateHour.AddMinutes(1);
+                                        <div  @onclick="()=>selectTakenDate(dateHour,y.IdYacht)" class="column" style="background:@col; border: 0.25px solid black; width:@temp%;"></div>
+                                    }
+                                    else 
+                                    {
+                                        <div @onclick="()=>selectDate(dateHour)" class="column" style="background:none; border: 0.25px solid black; width:@temp%;"></div>
+                                    }
+                                   
+
+                                numYacht++;
+                                    }
+                                    </div>
+                                    
+
+                                }
+                       
+                        </div>
+                
+              
+
+        }
+</section>
+    </center>
+    </div>
+}
+
+@if (!isTimeFrameCorrect)
+{
+    <div class="alert alert-warning" role="alert">
+        W tym czasie yacht jest niedostepny.
+    </div>
+}
+@if (!isEndTimeLaterThanStart)
+{
+    <div class="alert alert-warning" role="alert">
+        Końcowy czas rezerwacji nie może poprzedzać początkowego.
+    </div>
+}
+
+
+@code {
+
+    [Parameter]
+    public int yachtID{ get; set; }
+    [Parameter]
+    public int? orderID{ get; set; }
+    private bool isAuthorised = true;
+    private Account account { get; set; }
+    private OrderFront orderData = new OrderFront();
+    private bool isTimeFrameCorrect = true;
+    private bool isEndTimeLaterThanStart = true;
+    private bool isLoaded = false;
+    private bool isCreateOperation = true;
+    private List<Order> Orders;
+
+    private CalendarPopup popup;
+    private string choice;
+    private List<Yacht> DisplayYachts = new List<Yacht>();
+    private List<Yacht> filteredOptionYachts = new List<Yacht>();
+
+    private List<Yacht> Yachts;
+    bool IsInside; 
+
+    string monthName = "";
+    DateTime monthEnd;
+    int monthsAway = 0;
+    int numDummyColumn = 0;
+    int year = 2023;
+    int month = 0;
+    string lastColor = "";
+    string[] colorPalette = { "#a50026","#d73027","#f46d43","#fdae61","#fee08b","#ffffbf","#d9ef8b","#a6d96a","#66bd63","#1a9850","#006837" };
+    List<Tuple<string, int>> colors = new List<Tuple<string, int>>();
+    bool first = true;
+    protected override async Task OnParametersSetAsync()
+    {
+
+        orderData.start_date = DateTime.Today;
+        orderData.end_date = DateTime.Today;
+        orderData.orderType = (orderType.option) 0;
+        Orders = await orderService.GetYachtOrders(yachtID);
+        Yachts = await YachtService.GetYachts();
+        DisplayYachts.Add(await YachtService.getYachtById(yachtID));
+        filteredOptionYachts = Yachts.Where(o =>o.IsAvailable==true).ToList();
+        authorizationHandle();
+
+        await getOrderData();
+        CreateMonth();
+
+        for (int i = 0; i < filteredOptionYachts.Count; i++)
+        {
+
+            var temp = new Tuple<string, int>(colorPalette[i % 11], filteredOptionYachts[i].IdYacht);
+            colors.Add(temp);
+            lastColor = temp.Item1;
+        }
+
+        isLoaded = true;
+    }
+    void CreateMonth()
+    {
+        var tempDate = DateTime.Now.AddMonths(monthsAway);
+        month = tempDate.Month;
+        year = tempDate.Year;
+
+        DateTime monthStart = new DateTime(year, month, 1);
+        monthEnd = monthStart.AddMonths(1).AddDays(-1);
+        monthName = monthStart.Month switch
+        {
+            1 => "styczeń",
+            2 => "luty",
+            3 => "Marzec",
+            4 => "kwiecień",
+            5 => "maj",
+            6 => "Czerwiec",
+            7 => "Lipiec",
+            8 => "sierpień",
+            9 => "wrzesień",
+            10 => "październik",
+            11 => "listopad",
+            12 => "grudzień",
+            _ => ""
+        };
+
+        numDummyColumn = (int)monthStart.DayOfWeek -1;
+        if (numDummyColumn == -1)
+            numDummyColumn = 6;
+    }
+
+
+
+
+    public bool checkIfUpdatingExistingEntry()
+    {
+        if (orderID is null)
+        {
+            return false;
+        }
+        else
+        {
+            isCreateOperation = false;
+            return true;
+        }
+    }
+    public async Task getOrderData()
+    {
+        if (checkIfUpdatingExistingEntry())
+        {
+            int unpackedID = orderID ?? -1;
+            Order orderToUpdate = await orderService.GetOrderByID(unpackedID);
+            populateFields(orderToUpdate);
+        }
+    }
+    public void populateFields(Order existingOrder)
+    {
+        orderData = new OrderFront()
+            {
+                start_date = existingOrder.StartDate,
+                end_date = existingOrder.EndDate,
+                isAccepted = false,
+                isReleased = existingOrder.IsReleased          
+
+            };
+    }
+    private async Task performOperation()
+    {
+        bool isInputDataCorrect = await isDataCorrect();
+        Order newOrder = createOrderBasedOnData(orderData);
+
+        if (isCreateOperation && isInputDataCorrect)
+        {
+            await orderService.addNewOrder(newOrder);
+            navigationManager.NavigateTo("/Sailor/DisplayYachts", true);
+        }
+        else if(!isCreateOperation && isInputDataCorrect && orderData.isReleased!=true)
+        {
+            if (orderID is int valueID)
+            {
+                await orderService.deleteOrderByID(valueID);
+            }
+
+            await orderService.updateOrder(newOrder);
+            navigationManager.NavigateTo("/Sailor/DisplayYachts", true);
+        }
+    }
+    private Order createOrderBasedOnData(OrderFront data)
+    {
+        Order newOrder = new Order()
+            {
+                IsAccepted = false,
+                IsReleased = false,
+                RequestDate = DateTime.Now,
+                StartDate = data.start_date,
+                EndDate = data.end_date,
+                AccountIdAccount = account.IdAccount,
+                YachtIdYacht = yachtID,
+                OrderType=data.orderType.ToString()
+    };
+
+        return newOrder;
+    }
+    private DateTime parseDateTime(string time)
+    {
+        return DateTime.Parse(time);
+    }
+    private async Task<bool> isDataCorrect()
+    {
+        if (!await isOrderTimeCorrect())
+        {
+            isTimeFrameCorrect = false;
+        }
+        else if (!isStartTimeEarlier(orderData))
+        {
+            isEndTimeLaterThanStart = false;
+        }
+        else return true;
+
+        return false;
+    }
+    private bool isStartTimeEarlier(OrderFront data)
+    {
+        if (data.start_date >= data.end_date)
+        {
+            return false;
+        }
+        else return true;
+    }
+    private async Task<bool> isOrderTimeCorrect()
+    {
+        List<Order> collidingReservations = await getOrdersInSameTime();
+        int numberOfCollides = collidingReservations.Count;
+        // assuming we are editing existing entry, there will be always one colliding
+        // (same entry), so we substract 1 in that scenario
+        if (!isCreateOperation)
+        {
+            numberOfCollides -= 1;
+        }
+
+        if(numberOfCollides > 0)
+        {
+            return false;
+        }
+        else return true;
+    }
+
+    private async Task<List<Order>> getOrdersInSameTime()
+    {
+        List<Order> collidingOrders = await orderService.getOrderInTimeFrame(yachtID, orderData.start_date, orderData.end_date);
+
+        return collidingOrders;
+    }
+
+
+    public async void authorizationHandle()
+    {
+        try
+        {
+            await authorizeAccount();
+        }
+        catch // assuming account of a given ID has not been found
+        {
+            isAuthorised = false;
+        }
+    }
+
+
+    public async Task authorizeAccount()
+    {
+        String accountId = await sessionStorage.GetItemAsStringAsync("account_id");
+        account = await accountService.GetAccountByID(Int32.Parse(accountId)); 
+
+    }
+
+    public void selectDay(DateTime date)
+    {
+        IsInside = true;
+        if(DateTime.Now.Date<=date.Date)
+        {
+
+            popup.Show(date, Orders, DisplayYachts, false);
+        }
+        else
+            popup.Show(date, Orders, DisplayYachts, true);
+
+    }
+    public void selectDate(DateTime date)
+    {
+        IsInside= true;
+        if(DateTime.Now<=date)
+        {
+
+            popup.Show(date, Orders, DisplayYachts, false);
+        }
+        else
+        {
+            popup.Show(date.Date, Orders, DisplayYachts, true);
+        }
+        
+    }
+    public async Task selectTakenDate(DateTime date, int id)
+    {
+        IsInside= true;
+        List<Yacht> yacht = new  List<Yacht>();
+        yacht.Add(await YachtService.getYachtById(id));
+        popup.Show(date, await orderService.GetYachtOrders(id), yacht, true);
+    }
+
+    public void selectFreeDate(DateTime date)
+    {
+        IsInside= true;
+        popup.Show(date);
+    }
+    private void OnModalDone(string _choice, DateTime _date)
+    {
+        choice = _choice;
+        if (choice == "start")
+        {
+            orderData.start_date = _date;
+            if(orderData.end_date<= _date)
+            {
+                orderData.end_date = _date.AddHours(1); 
+            }
+        }
+
+        else if (choice=="end")
+        {
+            orderData.end_date = _date;
+            if(orderData.start_date>= _date)
+            {
+               orderData.start_date = _date.AddHours(-1); 
+            }
+        }
+        
+
+    }
+
+    private async Task SelectYachts(ChangeEventArgs e)
+    {
+        first = false;
+        DisplayYachts = new List<Yacht>();
+
+        var selected = (string[])e.Value;
+        Orders = await orderService.GetYachtsOrders(selected.Select(int.Parse).ToList());
+        foreach(var s in selected)
+        {
+            var temp = Task.Run(async () =>  await YachtService.getYachtById(Int32.Parse(s)));
+
+            DisplayYachts.Add(temp.Result);
+        }
+        if(DisplayYachts.Count==1)
+        {
+            yachtID = DisplayYachts[0].IdYacht;
+        }
+
+
+    }
+
+    private void FilterYachts(ChangeEventArgs args)
+    {
+        
+        string temp = args.Value.ToString();
+        if (temp != null)
+            filteredOptionYachts = Yachts.Where(o => o.YachtName.ToUpperInvariant().Contains(temp.ToUpperInvariant()) &&o.IsAvailable==true).ToList();
+        else
+            filteredOptionYachts = Yachts;
+         if (filteredOptionYachts.Count == 1)
+        {
+            DisplayYachts = new List<Yacht>();
+            DisplayYachts.Add(filteredOptionYachts[0]);
+        }
+    }
+
+    private string RandomColor(string last)
+    {
+        string color="#1e90ff";
+        var random = new Random();
+        while(color=="#1e90ff" || color==last)
+        {
+            color = String.Format("#{0:X6}", random.Next(0x1000000));
+        }
+
+
+        return color;
+
+
+    }
+
+     void MouseIn()
+    {
+        IsInside= true;
+    } 
+    void MouseOut()
+    {
+        IsInside= false;
+    }
+
+    void getBack()
+    {
+
+        if(!IsInside && popup.IsVisible==true)
+        {
+            popup.Close();
+        }
+}
+  
+}

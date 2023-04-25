@@ -1,0 +1,122 @@
+﻿@page "/Boatswain/YachtsManagment"
+@using DataBaseAccess.Models
+@inject Repository.Services.AccountManagmentService accountService;
+@inject Repository.Services.YachtService YachtService;
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject NavigationManager navigationManager;
+
+
+@if(isLoaded && isAuthorised){
+     <div class="card m-3" style="min-width: 18rem; max-width:50.auto%;">
+     <button type="button" class="btn btn-success" @onclick="@addYacht">Dodaj</button>
+    </div>
+    @foreach (Yacht yacht in Yachts)
+    {
+        int index = @Yachts.IndexOf(yacht) + 1;
+        <div class="card m-3" style="min-width: 18rem; max-width:50.auto%;">
+            <div class="card-header text-center">
+                <h3>Jacht Numer @index</h3>
+                <h3> Nazwa: @yacht.YachtName</h3>
+                <h3> Typ: @yacht.Type</h3>
+                <h3> Długość: @yacht.Length m</h3>
+                <h3> Szerokość: @yacht.Width m</h3>
+                <h3> Zanurzenie: @yacht.Draft m</h3>
+                <h3> Powierzchnia żaglowa @yacht.SailedSurface m<sup>2</sup></h3>
+                <h3> Ilość załogi: @yacht.CrewNumber</h3>
+                <h3> @yacht.Remarks</h3>
+                @if(yacht.IsAvailable)
+                {
+                    <h3> Dostępny</h3>
+                }
+                @if(!yacht.IsAvailable)
+                {
+                    <h3> Niedostępny</h3>
+                }
+                
+            </div>
+            <a href="/Boatswain/EditYacht/@yacht.IdYacht" class="btn btn-warning btn-sm">Edytuj</a>
+            <button type="button" class="btn btn-primary btn-sm" @onclick="()=> changeAvailable(yacht)">Zmień dostępność</button>
+        </div>
+    }
+}
+
+
+@if (!isAuthorised)
+{
+    <h2>Nie jesteś autoryzowany do uzyskania tego zasobu!</h2>
+}
+
+
+@code {
+
+    private int UserID ;
+    private Account account{ get; set; }
+    private List<Yacht> Yachts;
+    private Order orderToDelete;
+    private List<Order> Orders;
+    private bool isLoaded;
+    private bool DeleteDialogOrderOpen;
+
+    private List<Account> accounts;
+    List<Tuple<int, List<Order>>> YachtsWithOrders = new List<Tuple<int, List<Order>>>();
+    private bool isAuthorised = true;
+    protected override async Task OnParametersSetAsync()
+    {
+        authorizationHandle();
+    
+
+        Yachts = await YachtService.GetYachts();
+        isLoaded = true;
+        //accounts = await accountService.GetAccounts();
+
+
+    }
+    public async void authorizationHandle()
+    {
+        try
+        {
+            await authorizeAccount();
+        }
+        catch // assuming account of a given ID has not been found
+        {
+            isAuthorised = false;
+        }
+    }
+
+
+    public async Task authorizeAccount()
+    {
+        if(await sessionStorage.GetItemAsStringAsync("role")=="Boatswain")
+        {
+            String accountId = await sessionStorage.GetItemAsStringAsync("account_id");
+
+            UserID = Int32.Parse(accountId);
+            account = await accountService.GetAccountByID(Int32.Parse(accountId));
+        }
+        else
+            isAuthorised = false;
+
+    }
+    private void addYacht()
+    {
+        navigationManager.NavigateTo("/Boatswain/EditYacht/-1");
+    }
+    private async void changeAvailable(Yacht yachtToChange)
+    {
+        if(yachtToChange!=null)
+        {
+            YachtService.UpdateAvailable(yachtToChange.IdYacht, !yachtToChange.IsAvailable);
+            Yachts = await YachtService.GetYachts();
+            this.StateHasChanged();
+            navigationManager.NavigateTo("/Boatswain/YachtsManagment", true);
+        }
+    }
+    
+
+
+
+
+    
+   
+
+}
